@@ -21,6 +21,7 @@ import AdminDashboard from "../pages/Admin/Dashboard";
 
 // Intern Pages (using 'as' to avoid naming conflicts)
 import InternDashboard from "../pages/Intern/Dashboard";
+import ApplyForm from "../pages/Intern/ApplyForm";
 import MyApplications from "../pages/Intern/MyApplications";
 import MyTasks from "../pages/Intern/MyTasks";
 import Documents from "../pages/Intern/Documents";
@@ -67,6 +68,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<InternDashboard />} />
+        <Route path="apply" element={<ApplyForm/>}/>
         <Route path="applications" element={<MyApplications />} />
         <Route path="tasks" element={<MyTasks />} />
         <Route path="documents" element={<Documents />} />
