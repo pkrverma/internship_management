@@ -1,12 +1,11 @@
 import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Spinner from "../components/ui/Spinner"; // Assuming you have a spinner component
+import Spinner from "../components/ui/Spinner";
 
 const ProtectedRoute = ({ children, roles }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
-
 
   if (loading) {
     return (
@@ -24,7 +23,9 @@ const ProtectedRoute = ({ children, roles }) => {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  return children;
+  // If children provided → render children
+  // If no children → act as a route guard with Outlet
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

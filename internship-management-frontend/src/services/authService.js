@@ -1,58 +1,227 @@
-import { getData, saveData } from "./dataService"; // Ensure getData and saveData are imported
+import axios from "axios";
 
+// Base API URL - adjust this to match your backend
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401 (Unauthorized) - token might be expired
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        logout();
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * LOGIN - Connect to backend authentication
+ */
 export const login = async (email, password) => {
-  console.log("Attempting login...");
-  await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate network delay
+  try {
+    console.log("Attempting login...");
 
-  const users = getData("users"); // Get users from local storage
-  const user = users.find((u) => u.email === email && u.password === password);
+    const response = await api.post("/auth/login", {
+      email,
+      password,
+    });
 
-  if (user) {
-    // --- START: Added logic for Suspend role check ---
+    const { user, accessToken, refreshToken } = response.data;
+
+    // Check if user is suspended
     if (user.role === "Suspend") {
-      console.log(`Login failed: User ${user.email} is suspended.`);
       throw new Error(
         "Your account has been suspended. Please contact administrator."
       );
     }
-    // --- END: Added logic for Suspend role check ---
 
+    // Store tokens and user data
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("currentUser", JSON.stringify(user));
+
     console.log("Login successful:", user);
     return user;
-  } else {
-    console.log("Login failed: Invalid credentials.");
-    throw new Error("Invalid email or password.");
+  } catch (error) {
+    console.error("Login failed:", error);
+
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    } else if (error.message) {
+      throw new Error(error.message);
+    } else {
+      throw new Error("Login failed. Please try again.");
+    }
   }
 };
 
-export const logout = () => {
-  localStorage.removeItem("currentUser");
-  console.log("User logged out.");
+/**
+ * REGISTER - Connect to backend registration
+ */
+export const register = async (userData) => {
+  try {
+    console.log("Attempting registration...");
+
+    const response = await api.post("/auth/register", userData);
+    const { user, accessToken, refreshToken } = response.data;
+
+    // Store tokens and user data
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("currentUser", JSON.stringify(user));
+
+    console.log("Registration successful:", user);
+    return user;
+  } catch (error) {
+    console.error("Registration failed:", error);
+
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error("Registration failed. Please try again.");
+    }
+  }
 };
 
+/**
+ * LOGOUT - Clear tokens and user data
+ */
+export const logout = async () => {
+  try {
+    // Call backend logout endpoint (optional - for token blacklisting)
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      await api.post("/auth/logout", { refreshToken });
+    }
+  } catch (error) {
+    console.error("Logout API call failed:", error);
+    // Continue with local cleanup even if API call fails
+  } finally {
+    // Clear local storage
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("currentUser");
+    console.log("User logged out.");
+  }
+};
+
+/**
+ * GET CURRENT USER - From localStorage
+ */
 export const getCurrentUser = () => {
   try {
     const user = localStorage.getItem("currentUser");
     return user ? JSON.parse(user) : null;
   } catch (error) {
-    console.error("Error parsing current user from localStorage", error);
+    console.error("Error parsing current user from localStorage:", error);
     return null;
   }
 };
 
-export const register = async (userData) => {
-  console.log("Attempting registration...");
-  await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate network delay
+/**
+ * TOKEN MANAGEMENT HELPERS
+ */
+export const getAccessToken = () => {
+  return localStorage.getItem("accessToken");
+};
 
-  const users = getData("users");
-  if (users.some((u) => u.email === userData.email)) {
-    throw new Error("User with this email already exists.");
+export const getRefreshToken = () => {
+  return localStorage.getItem("refreshToken");
+};
+
+/**
+ * REFRESH TOKEN - Get new access token
+ */
+export const refreshAccessToken = async () => {
+  try {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    const response = await api.post("/auth/refresh", {
+      refreshToken: refreshToken,
+    });
+
+    const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+    // Update stored tokens
+    localStorage.setItem("accessToken", accessToken);
+    if (newRefreshToken) {
+      localStorage.setItem("refreshToken", newRefreshToken);
+    }
+
+    return accessToken;
+  } catch (error) {
+    console.error("Token refresh failed:", error);
+    throw error;
   }
+};
 
-  // Assign default role (e.g., Intern) for new registrations
-  const newUser = { ...userData, id: `user_${Date.now()}`, role: "Intern" };
-  saveData("users", [...users, newUser]);
-  console.log("Registration successful:", newUser);
-  return newUser;
+/**
+ * CHECK IF USER IS AUTHENTICATED
+ */
+export const isAuthenticated = () => {
+  const token = getAccessToken();
+  const user = getCurrentUser();
+  return !!(token && user);
+};
+
+/**
+ * UPDATE USER PROFILE (optional)
+ */
+export const updateProfile = async (userData) => {
+  try {
+    const response = await api.put("/auth/profile", userData);
+    const updatedUser = response.data.user;
+
+    // Update stored user data
+    localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+
+    return updatedUser;
+  } catch (error) {
+    console.error("Profile update failed:", error);
+    throw new Error(error.response?.data?.message || "Profile update failed");
+  }
 };

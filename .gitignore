@@ -1,0 +1,39 @@
+# Dependency directories
+node_modules/
+
+# Build output
+/dist/
+/coverage/
+
+# Environment variables and sensitive config
+.env
+*.env.*.local
+*.local
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Log files
+*.log
+npm-debug.log*
+
+# Miscellaneous
+public/vite.svg
+
+# Mock data (ignore in production)
+internship-management-frontend/src/mock/
+
+# Backend uploads
+internship-management-backend/uploads/
+
+# Ignore resumes and sensitive documents
+internship-management-backend/uploads/resumes/
+
+# Ignore body.json and other temp files
+internship-management-backend/body.json
+internship-management-frontend/.env

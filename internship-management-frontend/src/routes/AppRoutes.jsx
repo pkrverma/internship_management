@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import ScrollToTop from "../components/layout/ScrollToTop"; // Ensure ScrollToTop is imported
+import ScrollToTop from "../components/layout/ScrollToTop";
 
 // Layouts
 import MainLayout from "../layouts/MainLayout";
@@ -26,7 +26,7 @@ import Reports from "../pages/Admin/Reports";
 import AdminSettings from "../pages/Admin/AdminSettings";
 import AllInternships from "../pages/Admin/AllInternships";
 import ManageUsers from "../pages/Admin/ManageUsers";
-import PostUpdate from "../pages/Admin/PostUpdate"; // NEW: Import PostUpdate
+import PostUpdate from "../pages/Admin/PostUpdate";
 
 // Intern Pages
 import InternDashboard from "../pages/Intern/Dashboard";
@@ -48,15 +48,15 @@ import MentorSettings from "../pages/Mentor/MentorSettings";
 import MentorDocuments from "../pages/Mentor/MentorDocuments";
 
 // Common Pages
-import Notifications from "../pages/common/Notifications"; // NEW: Import Notifications
+import Notifications from "../pages/common/Notifications";
 
 // Components
-import ProtectedRoute from "./ProtectedRoutes"; // Correctly named ProtectedRoute
+import ProtectedRoute from "./ProtectedRoutes";
 
 const AppRoutes = () => {
   return (
     <>
-      <ScrollToTop /> {/* Scrolls to top on route change */}
+      <ScrollToTop />
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -70,12 +70,12 @@ const AppRoutes = () => {
           <Route path="/internships" element={<InternshipsPage />} />
         </Route>
 
-        {/* Intern Routes: ProtectedRoute wraps InternLayout which contains the Sidebar */}
+        {/* Intern Routes */}
         <Route
           path="/intern"
           element={
             <ProtectedRoute roles={["Intern"]}>
-              <InternLayout /> {/* InternLayout renders the Sidebar */}
+              <InternLayout />
             </ProtectedRoute>
           }
         >
@@ -88,16 +88,15 @@ const AppRoutes = () => {
           <Route path="chat" element={<Chat />} />
           <Route path="meetings" element={<Meetings />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="notifications" element={<Notifications />} />{" "}
-          {/* NEW: Notifications Route */}
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
-        {/* Mentor Routes: ProtectedRoute wraps MentorLayout which contains the Sidebar */}
+        {/* Mentor Routes */}
         <Route
           path="/mentor"
           element={
             <ProtectedRoute roles={["Mentor"]}>
-              <MentorLayout /> {/* MentorLayout renders the Sidebar */}
+              <MentorLayout />
             </ProtectedRoute>
           }
         >
@@ -106,21 +105,19 @@ const AppRoutes = () => {
           <Route path="interns" element={<AssignedInterns />} />
           <Route path="tasks" element={<ReviewTasks />} />
           <Route path="documents" element={<MentorDocuments />} />
-          <Route path="meetings" element={<MentorMeetings />} />{" "}
+          <Route path="meetings" element={<MentorMeetings />} />
           <Route path="chat" element={<MentorChat />} />
           <Route path="settings" element={<MentorSettings />} />
-          <Route path="post-update" element={<PostUpdate />} />{" "}
-          {/* NEW: Post Update Route */}
-          <Route path="notifications" element={<Notifications />} />{" "}
-          {/* NEW: Notifications Route */}
+          <Route path="post-update" element={<PostUpdate />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
-        {/* Admin Routes: ProtectedRoute wraps AdminLayout which contains the Sidebar */}
+        {/* Admin Routes */}
         <Route
           path="/admin"
           element={
             <ProtectedRoute roles={["Admin"]}>
-              <AdminLayout /> {/* AdminLayout renders the Sidebar */}
+              <AdminLayout />
             </ProtectedRoute>
           }
         >
@@ -133,13 +130,11 @@ const AppRoutes = () => {
           <Route path="interview-scheduler" element={<InterviewScheduler />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<AdminSettings />} />
-          <Route path="post-update" element={<PostUpdate />} />{" "}
-          {/* NEW: Post Update Route */}
-          <Route path="notifications" element={<Notifications />} />{" "}
-          {/* NEW: Notifications Route */}
+          <Route path="post-update" element={<PostUpdate />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
-        {/* Catch-All for undefined routes */}
+        {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
