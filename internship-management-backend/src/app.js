@@ -14,19 +14,29 @@ const app = express();
 app.use(helmet());
 
 // CORS whitelist
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000"
-];
+// Parse comma-separated CORS origins from env
+function parseOrigins(envValue) {
+  if (!envValue) return [];
+  return envValue
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+}
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error("Not allowed by CORS"));
-  }
-}));
+const allowedOrigins = parseOrigins(process.env.CORS_ORIGINS);
+
+// Example: CORS_ORIGINS="http://localhost:3000, http://127.0.0.1:3000, https://your-frontend.vercel.app"
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, Postman) or whitelisted origins
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 
 // Parsers and rate limit
 app.use(express.json());
