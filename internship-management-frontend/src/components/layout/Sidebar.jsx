@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getNotificationCount } from "../../services/notificationService";
 import ProfileAvatar from "../ui/ProfileAvatar";
-import { getData } from "../../services/dataService"; // Import getData to fetch updates
 
 import {
   IoGridOutline,
@@ -16,42 +16,32 @@ import {
   IoPeopleOutline,
   IoFileTrayFullOutline,
   IoAnalyticsOutline,
-  IoNotificationsOutline, // NEW: Import Notifications icon
-  IoCreateOutline, // NEW: Import Create icon for Post Update
+  IoNotificationsOutline,
+  IoCreateOutline,
+  IoChevronBackOutline,
+  IoChevronForwardOutline,
 } from "react-icons/io5";
 
-const Sidebar = () => {
+const Sidebar = ({ role, isOpen, onToggle }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [navItems, setNavItems] = useState([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0); // NEW: State for unread count
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [collapsed, setCollapsed] = useState(false);
 
-  // Function to calculate unread notifications
-  const calculateUnreadCount = useCallback(() => {
+  // Fetch real notification count from backend
+  const fetchNotificationCount = useCallback(async () => {
     if (!user) return;
     try {
-      const allUpdates = getData("updates") || [];
-      const relevantUnreadUpdates = allUpdates.filter((update) => {
-        // An update is relevant if:
-        // 1. It targets 'All' users.
-        // 2. It targets the user's specific role.
-        // 3. It targets the user's specific ID.
-        const isRelevant =
-          update.targetRole === "All" ||
-          update.targetRole === user.role ||
-          (update.targetRole === "Specific" && update.targetUserId === user.id);
-        // And it has NOT been read by the current user
-        const isUnread = !(update.readBy && update.readBy.includes(user.id));
-        return isRelevant && isUnread;
-      });
-      setUnreadNotificationCount(relevantUnreadUpdates.length);
+      const count = await getNotificationCount();
+      setUnreadNotificationCount(count.unread || 0);
     } catch (error) {
-      console.error("Failed to calculate unread notification count:", error);
+      console.error("Failed to fetch notification count:", error);
       setUnreadNotificationCount(0);
     }
-  }, [user]); // Dependency on user to re-calculate if user changes
+  }, [user]);
 
-  // Effect to update navItems based on user role
+  // Set navigation items based on role
   useEffect(() => {
     if (!user) return;
 
@@ -62,7 +52,7 @@ const Sidebar = () => {
         icon: IoNotificationsOutline,
         label: "Notifications",
         showCount: true,
-      }, // NEW: Moved and added showCount
+      },
       {
         to: "/internships",
         icon: IoBriefcaseOutline,
@@ -98,7 +88,7 @@ const Sidebar = () => {
         icon: IoNotificationsOutline,
         label: "Notifications",
         showCount: true,
-      }, // NEW: Moved and added showCount
+      },
       {
         to: "/mentor/interns",
         icon: IoPeopleOutline,
@@ -130,7 +120,7 @@ const Sidebar = () => {
         icon: IoNotificationsOutline,
         label: "Notifications",
         showCount: true,
-      }, // NEW: Moved and added showCount
+      },
       {
         to: "/admin/all-internships",
         icon: IoFileTrayFullOutline,
@@ -169,77 +159,206 @@ const Sidebar = () => {
     }
   }, [user]);
 
-  // Effect to calculate unread count periodically
+  // Update notification count periodically
   useEffect(() => {
-    calculateUnreadCount(); // Initial calculation
-    const intervalId = setInterval(calculateUnreadCount, 5000); // Recalculate every 5 seconds
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, [calculateUnreadCount]); // Dependency on calculateUnreadCount
+    fetchNotificationCount(); // Initial fetch
+    const interval = setInterval(fetchNotificationCount, 30000); // Every 30 seconds
+    return () => clearInterval(interval);
+  }, [fetchNotificationCount]);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  const baseLinkClass =
-    "flex items-center px-4 py-3 text-indigo-100 rounded-lg hover:bg-indigo-700 hover:text-white transition-colors duration-200";
+  const baseLinkClass = `flex items-center px-4 py-3 text-indigo-100 rounded-lg hover:bg-indigo-700 hover:text-white transition-colors duration-200 ${
+    collapsed ? "justify-center" : ""
+  }`;
+
   const activeLinkClass =
     "bg-indigo-950 bg-opacity-50 text-white font-semibold";
 
-  const settingsLink =
-    user?.role === "Intern"
-      ? "/intern/settings"
-      : user?.role === "Mentor"
-      ? "/mentor/settings"
-      : "/admin/settings";
+  const getSettingsLink = () => {
+    switch (user?.role) {
+      case "Intern":
+        return "/intern/settings";
+      case "Mentor":
+        return "/mentor/settings";
+      case "Admin":
+        return "/admin/settings";
+      default:
+        return "/settings";
+    }
+  };
 
   return (
-    <div className="flex flex-col w-64 min-h-screen h-dvh fixed bg-indigo-800 text-white overflow-y-auto justify-start hide-scrollbar">
-      <div className="flex flex-col items-center p-4 mt-4">
-        <ProfileAvatar user={user} size="lg" />
-        <p className="mt-3 text-lg font-semibold">{user?.name}</p>
-        <p className="text-sm text-indigo-300">{user?.role}</p>
-      </div>
-      <div>
-        <nav className="flex-1 px-4 py-4 mt-4 space-y-2 ">
+    <>
+      {/* Desktop Sidebar */}
+      <div
+        className={`hidden lg:flex flex-col ${
+          collapsed ? "w-16" : "w-64"
+        } min-h-screen bg-indigo-800 text-white transition-all duration-300 fixed left-0 z-30`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4">
+          {!collapsed && (
+            <div className="flex flex-col items-center w-full">
+              <ProfileAvatar user={user} size="lg" />
+              <p className="mt-3 text-lg font-semibold truncate">
+                {user?.name}
+              </p>
+              <p className="text-sm text-indigo-300">{user?.role}</p>
+            </div>
+          )}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1 rounded-md hover:bg-indigo-700 transition-colors ml-auto"
+          >
+            {collapsed ? (
+              <IoChevronForwardOutline className="h-5 w-5" />
+            ) : (
+              <IoChevronBackOutline className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+
+        {collapsed && (
+          <div className="flex justify-center pb-4">
+            <ProfileAvatar user={user} size="sm" />
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4 space-y-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to.endsWith("/dashboard")} // 'end' prop is useful for dashboard to only be active on exact path
+              end={item.to.endsWith("/dashboard")}
               className={({ isActive }) =>
                 `${baseLinkClass} ${isActive ? activeLinkClass : ""}`
               }
+              title={collapsed ? item.label : undefined}
             >
-              <item.icon className="h-5 w-5 mr-3" />
-              <span>{item.label}</span>
-              {item.showCount &&
-                unreadNotificationCount > 0 && ( // NEW: Display badge conditionally
-                  <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {unreadNotificationCount}
-                  </span>
-                )}
+              <item.icon className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="ml-3">{item.label}</span>
+                  {item.showCount && unreadNotificationCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {unreadNotificationCount}
+                    </span>
+                  )}
+                </>
+              )}
+              {collapsed && item.showCount && unreadNotificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {unreadNotificationCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
 
+        {/* Bottom section */}
         <div className="px-4 py-4 border-t border-indigo-700 space-y-2">
           <NavLink
-            to={settingsLink}
+            to={getSettingsLink()}
             className={({ isActive }) =>
               `${baseLinkClass} ${isActive ? activeLinkClass : ""}`
             }
+            title={collapsed ? "Settings" : undefined}
           >
-            <IoSettingsOutline className="h-5 w-5 mr-3" />
-            <span>Settings</span>
+            <IoSettingsOutline className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span className="ml-3">Settings</span>}
           </NavLink>
-          <button onClick={handleLogout} className={`${baseLinkClass} w-full`}>
-            <IoLogOutOutline className="h-5 w-5 mr-3" />
-            <span>Logout</span>
+          <button
+            onClick={handleLogout}
+            className={`${baseLinkClass} w-full`}
+            title={collapsed ? "Logout" : undefined}
+          >
+            <IoLogOutOutline className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span className="ml-3">Logout</span>}
           </button>
         </div>
       </div>
-    </div>
+
+      {/* Mobile Sidebar */}
+      <div
+        className={`lg:hidden fixed inset-0 z-50 ${
+          isOpen ? "block" : "hidden"
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black bg-opacity-50"
+          onClick={onToggle}
+        />
+
+        {/* Sidebar */}
+        <div className="relative flex flex-col w-64 h-full bg-indigo-800 text-white">
+          {/* Header */}
+          <div className="flex flex-col items-center p-4 border-b border-indigo-700">
+            <button
+              onClick={onToggle}
+              className="self-end p-2 hover:bg-indigo-700 rounded-md mb-2"
+            >
+              <IoChevronBackOutline className="h-5 w-5" />
+            </button>
+            <ProfileAvatar user={user} size="lg" />
+            <p className="mt-3 text-lg font-semibold">{user?.name}</p>
+            <p className="text-sm text-indigo-300">{user?.role}</p>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to.endsWith("/dashboard")}
+                className={({ isActive }) =>
+                  `${baseLinkClass} ${isActive ? activeLinkClass : ""}`
+                }
+                onClick={onToggle}
+              >
+                <item.icon className="h-5 w-5 mr-3" />
+                <span>{item.label}</span>
+                {item.showCount && unreadNotificationCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {unreadNotificationCount}
+                  </span>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* Bottom section */}
+          <div className="px-4 py-4 border-t border-indigo-700 space-y-2">
+            <NavLink
+              to={getSettingsLink()}
+              className={({ isActive }) =>
+                `${baseLinkClass} ${isActive ? activeLinkClass : ""}`
+              }
+              onClick={onToggle}
+            >
+              <IoSettingsOutline className="h-5 w-5 mr-3" />
+              <span>Settings</span>
+            </NavLink>
+            <button
+              onClick={() => {
+                handleLogout();
+                onToggle();
+              }}
+              className={`${baseLinkClass} w-full`}
+            >
+              <IoLogOutOutline className="h-5 w-5 mr-3" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 
