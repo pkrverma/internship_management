@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Base API URL - should match your backend
 const API_BASE_URL =
-  VITE_API_URL || VITE_API_BASE_URL;
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
 
 // Create axios instance for data operations
 const api = axios.create({
