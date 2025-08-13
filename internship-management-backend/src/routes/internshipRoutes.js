@@ -69,7 +69,10 @@ router.post(
         );
       }
 
-      const resumePath = req.file.path;
+      const resumePath =
+        process.env.NODE_ENV === "production"
+          ? uploadedUrl // e.g. S3 URL you get after uploading the buffer
+          : req.file.path;
 
       const message = `
         New application received:
