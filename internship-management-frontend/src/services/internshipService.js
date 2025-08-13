@@ -14,7 +14,6 @@ import {
 export const createInternship = async (internshipData) => {
   try {
     console.log("Creating internship...");
-
     // Validate required fields
     const requiredFields = [
       "title",
@@ -31,7 +30,7 @@ export const createInternship = async (internshipData) => {
 
     const payload = {
       ...internshipData,
-      status: internshipData.status || "active",
+      status: internshipData.status || "Open", // consistent with Open/Closed usage
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -136,7 +135,7 @@ export const searchInternships = async (filters = {}) => {
 };
 
 /**
- * GET MY POSTED INTERNSHIPS (for mentors/admin)
+ * GET MY POSTED INTERNSHIPS
  */
 export const getMyPostedInternships = async (userId) => {
   try {
@@ -153,7 +152,7 @@ export const getMyPostedInternships = async (userId) => {
 };
 
 /**
- * UPDATE INTERNSHIP STATUS (active/closed)
+ * UPDATE INTERNSHIP STATUS
  */
 export const updateInternshipStatus = async (id, status) => {
   try {
@@ -187,6 +186,25 @@ export const getInternshipStats = async () => {
   }
 };
 
+/**
+ * NEW: GET AVAILABLE OPEN INTERNSHIPS
+ */
+export const getAvailableInternships = async () => {
+  try {
+    const all = await getData("internships");
+    return Array.isArray(all)
+      ? all.filter((i) => i.status?.toLowerCase() === "open")
+      : [];
+  } catch (error) {
+    console.error("Failed to fetch available internships:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to fetch available internships."
+    );
+  }
+};
+
 export default {
   createInternship,
   updateInternship,
@@ -197,4 +215,5 @@ export default {
   getMyPostedInternships,
   updateInternshipStatus,
   getInternshipStats,
+  getAvailableInternships,
 };

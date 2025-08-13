@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
+
 import {
   AdminRoute,
   MentorRoute,
@@ -22,112 +23,95 @@ import UnauthorizedPage from "../pages/UnauthorizedPage";
 
 import AdminLoginPage from "../pages/Admin/AdminLoginPage";
 import AdminDashboard from "../pages/Admin/Dashboard";
-import InternDashboard from "../pages/Intern/Dashboard";
 
-import NotificationsPage from "../pages/common/Notifications"; // ✅ added
+import MentorDashboard from "../pages/Mentor/Dashboard";
+import AssignedInterns from "../pages/Mentor/AssignedInterns";
+import MentorChat from "../pages/Mentor/MentorChat";
+import MentorDocuments from "../pages/Mentor/MentorDocuments";
+import MentorMeetings from "../pages/Mentor/MentorMeetings";
+import MentorSettings from "../pages/Mentor/MentorSettings";
+import ReviewTasks from "../pages/Mentor/ReviewTasks";
+import TrackProgress from "../pages/Mentor/TrackProgress";
+
+import InternDashboard from "../pages/Intern/Dashboard";
+import ApplyForm from "../pages/Intern/ApplyForm";
+import Chat from "../pages/Intern/Chat";
+import Documents from "../pages/Intern/Documents";
+import InternshipApplication from "../pages/Intern/InternshipApplication";
+import Meetings from "../pages/Intern/Meetings";
+import MyApplications from "../pages/Intern/MyApplications";
+import MyTasks from "../pages/Intern/MyTasks";
+import Settings from "../pages/Intern/Settings";
+
+import NotificationsPage from "../pages/common/Notifications";
 
 import { FullPageSpinner } from "../components/ui/Spinner";
 
 const AppRoutes = () => {
   return (
-    <Suspense fallback={<FullPageSpinner text="Loading..." />}>
+    <Suspense fallback={<FullPageSpinner />}>
       <Routes>
-        {/* Root public layout */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="internships" element={<InternshipsPage />} />
-          <Route path="about" element={<div>About Content</div>} />
-          <Route path="contact" element={<div>Contact Content</div>} />
-          <Route path="privacy" element={<div>Privacy</div>} />
-          <Route path="terms" element={<div>Terms</div>} />
-          <Route
-            path="login"
-            element={
-              <GuestRoute>
-                <LoginPage />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="register"
-            element={
-              <GuestRoute>
-                <RegisterPage />
-              </GuestRoute>
-            }
-          />
+        {/* Public */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/internships" element={<InternshipsPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
         </Route>
-        {/* ✅ Shared notifications route (common for all roles) */}
-        <Route
-          path="/notifications"
-          element={
-            <AuthenticatedRoute>
-              <MainLayout />
-            </AuthenticatedRoute>
-          }
-        >
-          <Route index element={<NotificationsPage />} />
+
+        {/* Notifications */}
+        <Route path="/notifications" element={<NotificationsPage />} />
+
+        {/* Admin Section */}
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            {/* Add other admin routes here */}
+          </Route>
         </Route>
-        {/* Admin routes */}
-        <Route
-          path="/admin/login"
-          element={
-            <GuestRoute redirectTo="/admin/dashboard">
-              <AdminLoginPage />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminLayout />
-            </AdminRoute>
-          }
-        >
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="notifications" element={<NotificationsPage />} />
+
+        {/* Mentor Section */}
+        <Route element={<MentorRoute />}>
+          <Route element={<MentorLayout />}>
+            <Route path="/mentor/dashboard" element={<MentorDashboard />} />
+            <Route
+              path="/mentor/assigned-interns"
+              element={<AssignedInterns />}
+            />
+            <Route path="/mentor/chat" element={<MentorChat />} />
+            <Route path="/mentor/documents" element={<MentorDocuments />} />
+            <Route path="/mentor/meetings" element={<MentorMeetings />} />
+            <Route path="/mentor/settings" element={<MentorSettings />} />
+            <Route path="/mentor/review-tasks" element={<ReviewTasks />} />
+            <Route path="/mentor/track-progress" element={<TrackProgress />} />
+          </Route>
         </Route>
-        {/* Mentor routes */}
-        <Route
-          path="/mentor"
-          element={
-            <MentorRoute>
-              <MentorLayout />
-            </MentorRoute>
-          }
-        >
-          <Route index element={<Navigate to="/mentor/dashboard" replace />} />
-          <Route path="notifications" element={<NotificationsPage />} />
+
+        {/* Intern Section */}
+        <Route element={<InternRoute />}>
+          <Route element={<InternLayout />}>
+            <Route path="/intern/dashboard" element={<InternDashboard />} />
+            <Route path="/intern/apply/:internshipId" element={<ApplyForm />} />
+            <Route path="/intern/chat" element={<Chat />} />
+            <Route path="/intern/documents" element={<Documents />} />
+            <Route
+              path="/intern/internship-application/:id"
+              element={<InternshipApplication />}
+            />
+            <Route path="/intern/meetings" element={<Meetings />} />
+            <Route
+              path="/intern/my-applications"
+              element={<MyApplications />}
+            />
+            <Route path="/intern/my-tasks" element={<MyTasks />} />
+            <Route path="/intern/settings" element={<Settings />} />
+          </Route>
         </Route>
-        {/* Intern routes */}
-        <Route
-          path="/intern"
-          element={
-            <InternRoute>
-              <InternLayout />
-            </InternRoute>
-          }
-        >
-          <Route index element={<Navigate to="/intern/dashboard" replace />} />
-          <Route path="dashboard" element={<InternDashboard />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-        </Route>
-        {/* Profile */}
-        <Route
-          path="/profile"
-          element={
-            <AuthenticatedRoute>
-              <MainLayout />
-            </AuthenticatedRoute>
-          }
-        >
-          <Route index element={<div>Profile page coming soon</div>} />
-        </Route>
-        {/* Error routes */}
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route path="*" element={<NotFound />} /> {/* ✅ fixed wildcard */}
+
+        {/* Fallback */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );

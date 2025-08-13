@@ -1,3 +1,4 @@
+// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from "react";
 import {
   login as authLogin,
@@ -6,24 +7,22 @@ import {
 } from "../services/authService";
 
 /**
- * AuthContext
- * Holds the authentication state and helpers
+ * AuthContext — holds authentication state and helper functions
  */
 const AuthContext = createContext(null);
 
 /**
- * AuthProvider
- * Wraps the app and provides auth state
+ * AuthProvider — wraps the app and provides authentication state
  */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // true until we check stored user
+  const [loading, setLoading] = useState(true); // true until initial check completes
 
-  // Load user from storage/API on app mount
+  // Load user from local storage/session when app mounts
   useEffect(() => {
     const loadUser = () => {
       try {
-        const storedUser = getCurrentUser(); // should parse localStorage/session or token decode
+        const storedUser = getCurrentUser(); // from localStorage/session or token decode
         if (storedUser) {
           setUser(storedUser);
         } else {
@@ -36,19 +35,21 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     };
+
     loadUser();
   }, []);
 
   /**
-   * Handle login
+   * Handle login — calls API via authService and stores user in context
    */
   const login = async (email, password) => {
     try {
       const loggedInUser = await authLogin(email, password);
       if (loggedInUser) {
         setUser(loggedInUser);
+        return loggedInUser;
       }
-      return loggedInUser;
+      return null;
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -56,11 +57,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Handle logout
+   * Handle logout — clears context and storage via authService
    */
-  const logout = () => {
-    setUser(null);
-    authLogout();
+  const logout = async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.error("Error during logout:", error);
+    } finally {
+      setUser(null);
+    }
   };
 
   const value = {
@@ -69,13 +75,13 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     loading,
-    setUser, // Optional: in case we need to update profile without logout/login
+    setUser, // Optional: allows updating profile info without a full login
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 /**
- * Hook to use auth context
+ * Custom hook for using auth context
  */
 export const useAuth = () => useContext(AuthContext);

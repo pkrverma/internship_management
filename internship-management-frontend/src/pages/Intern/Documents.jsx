@@ -23,19 +23,18 @@ const Documents = () => {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({ title: "", file: null });
   const [message, setMessage] = useState({ type: "", text: "" });
-
   const fileInputRef = useRef();
 
   // Load on mount
   useEffect(() => {
     if (user?.id) {
-      // Mentor shared
+      // Mentor-shared
       const mentorShared = sharedDocuments.filter(
         (doc) => doc.internId === user.id
       );
       setMentorDocs(mentorShared);
 
-      // Intern uploaded (local storage)
+      // Intern uploaded
       const internStored =
         JSON.parse(localStorage.getItem("internDocuments")) || [];
       const myDocs = internStored.filter((doc) => doc.internId === user.id);
@@ -45,26 +44,34 @@ const Documents = () => {
     }
   }, [user]);
 
-  // Handle field changes
+  // Auto clear message
+  useEffect(() => {
+    if (message.text) {
+      const t = setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [message]);
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    if (name === "file") {
-      if (files.length > 0) setFormData({ ...formData, file: files[0] });
+    if (name === "file" && files.length > 0) {
+      setFormData((prev) => ({ ...prev, file: files[0] }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  // Format date
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+  const formatDate = (dateStr) =>
+    new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
 
-  // Handle upload
+  const getFileIcon = (type) => (
+    <IoDocumentTextOutline className="inline text-blue-600" />
+  );
+
   const handleUpload = (e) => {
     e.preventDefault();
     if (!formData.title || !formData.file) {
@@ -73,16 +80,14 @@ const Documents = () => {
         text: "Please provide both title and file.",
       });
     }
-
-    // Validate type
+    // Validate file type
     if (!ALLOWED_TYPES.includes(formData.file.type)) {
       return setMessage({
         type: "error",
         text: "Invalid file type. Only PDF, DOC, and DOCX are allowed.",
       });
     }
-
-    // Validate size
+    // Validate file size
     if (formData.file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       return setMessage({
         type: "error",
@@ -102,95 +107,68 @@ const Documents = () => {
     const prevDocs = JSON.parse(localStorage.getItem("internDocuments")) || [];
     const updated = [...prevDocs, newDoc];
     localStorage.setItem("internDocuments", JSON.stringify(updated));
-
     setInternDocs(updated.filter((d) => d.internId === user.id));
-    setFormData({ title: "", file: null });
-    fileInputRef.current.value = ""; // reset file input
 
+    setFormData({ title: "", file: null });
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setMessage({ type: "success", text: "Document uploaded successfully!" });
   };
 
-  // Handle delete
   const handleDelete = (docId) => {
     if (!window.confirm("Are you sure you want to delete this document?"))
       return;
-
     const allDocs = JSON.parse(localStorage.getItem("internDocuments")) || [];
     const updated = allDocs.filter((doc) => doc.id !== docId);
     localStorage.setItem("internDocuments", JSON.stringify(updated));
-
     setInternDocs(updated.filter((doc) => doc.internId === user.id));
     setMessage({ type: "success", text: "Document deleted." });
   };
 
-  // File type icon
-  const getFileIcon = (type) => {
-    return (
-      <IoDocumentTextOutline className="text-indigo-500 w-5 h-5 inline-block" />
-    );
-  };
+  if (loading) {
+    return <p className="p-4">Loading documents...</p>;
+  }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h2 className="text-3xl font-bold text-gray-800 mb-4">
-        📂 Document Center
-      </h2>
+    <div className="p-4 space-y-6">
+      <h1 className="text-xl font-bold flex items-center gap-2">
+        <IoDocumentTextOutline /> My Documents
+      </h1>
 
       {message.text && (
         <div
-          className={`mb-4 p-3 rounded-md ${message.type === "error" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
+          className={`p-2 rounded ${
+            message.type === "error"
+              ? "bg-red-100 text-red-700"
+              : "bg-green-100 text-green-700"
+          }`}
         >
           {message.text}
         </div>
       )}
 
-      {/* Mentor Shared Documents */}
-      <section className="mb-10">
-        <h3 className="text-2xl font-semibold mb-3">Mentor Shared Documents</h3>
-        {loading ? (
-          <p className="text-gray-600">Loading Documents...</p>
-        ) : mentorDocs.length === 0 ? (
+      {/* Mentor-shared docs */}
+      <section>
+        <h2 className="font-semibold mb-2">Mentor Shared Documents</h2>
+        {mentorDocs.length === 0 ? (
           <p className="text-gray-500">No mentor-shared documents yet.</p>
         ) : (
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
+          <div className="overflow-x-auto border rounded bg-white">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Title
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    File
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Uploaded By
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Uploaded At
-                  </th>
+                  <th className="p-2 text-left">Title</th>
+                  <th className="p-2 text-left">File</th>
+                  <th className="p-2">Uploaded At</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {mentorDocs.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {doc.title}
+                  <tr key={doc.id} className="border-t">
+                    <td className="p-2">{doc.title}</td>
+                    <td className="p-2 flex items-center gap-1">
+                      {getFileIcon(doc.fileType)} {doc.fileName}
                     </td>
-                    <td className="px-6 py-4 text-sm text-blue-600 hover:underline">
-                      <a
-                        href={`/${doc.fileName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {getFileIcon(doc.fileType)} {doc.fileName}
-                      </a>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {doc.uploadedBy}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDate(doc.uploadedAt)}
-                    </td>
+                    <td className="p-2">{formatDate(doc.uploadedAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -199,99 +177,46 @@ const Documents = () => {
         )}
       </section>
 
-      {/* Upload Form */}
-      <section className="mb-10">
-        <h3 className="text-2xl font-semibold mb-3">Upload Your Documents</h3>
-        <form
-          onSubmit={handleUpload}
-          className="mb-8 space-y-4 bg-white p-4 rounded-lg shadow border"
-        >
-          <input
-            type="text"
-            name="title"
-            placeholder="Document Title (e.g., Resume)"
-            value={formData.title}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded focus:ring focus:ring-indigo-300"
-            required
-          />
-          <input
-            type="file"
-            name="file"
-            accept=".pdf,.doc,.docx"
-            onChange={handleChange}
-            ref={fileInputRef}
-            className="w-full px-4 py-2 border rounded focus:ring focus:ring-indigo-300"
-            required
-          />
-          <button
-            type="submit"
-            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700"
-          >
-            <IoCloudUploadOutline />
-            Upload Document
-          </button>
-        </form>
-      </section>
-
-      {/* Your Uploaded Documents */}
+      {/* My uploaded docs */}
       <section>
-        <h3 className="text-2xl font-semibold mb-3">Your Uploaded Documents</h3>
+        <h2 className="font-semibold mb-2">My Uploaded Documents</h2>
         {internDocs.length === 0 ? (
           <p className="text-gray-500">
             You haven't uploaded any documents yet.
           </p>
         ) : (
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
+          <div className="overflow-x-auto border rounded bg-white">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Title
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    File
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Uploaded At
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                    Actions
-                  </th>
+                  <th className="p-2 text-left">Title</th>
+                  <th className="p-2 text-left">File</th>
+                  <th className="p-2">Uploaded At</th>
+                  <th className="p-2">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {internDocs.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {doc.title}
+                  <tr key={doc.id} className="border-t">
+                    <td className="p-2">{doc.title}</td>
+                    <td className="p-2 flex items-center gap-1">
+                      {getFileIcon(doc.fileType)} {doc.fileName}
                     </td>
-                    <td className="px-6 py-4 text-sm text-blue-600 hover:underline">
+                    <td className="p-2">{formatDate(doc.uploadedAt)}</td>
+                    <td className="p-2">
                       <a
-                        href={`/${doc.fileName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={doc.url || "#"}
+                        download
+                        className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
                       >
-                        {getFileIcon(doc.fileType)} {doc.fileName}
+                        <IoDownloadOutline /> Download
                       </a>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDate(doc.uploadedAt)}
-                    </td>
-                    <td className="px-6 py-4 text-center flex items-center justify-center gap-4">
-                      <a
-                        href={`/${doc.fileName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Download"
-                      >
-                        <IoDownloadOutline className="text-green-600 hover:text-green-800 cursor-pointer" />
-                      </a>
-                      <IoTrashOutline
+                      <button
                         onClick={() => handleDelete(doc.id)}
-                        className="text-red-600 hover:text-red-800 cursor-pointer"
-                        title="Delete"
-                      />
+                        className="text-red-600 hover:underline flex items-center gap-1 text-sm ml-2"
+                      >
+                        <IoTrashOutline /> Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -299,6 +224,31 @@ const Documents = () => {
             </table>
           </div>
         )}
+
+        {/* Upload form */}
+        <form onSubmit={handleUpload} className="mt-4 flex gap-2">
+          <input
+            type="text"
+            name="title"
+            placeholder="Document title"
+            value={formData.title}
+            onChange={handleChange}
+            className="border p-2 rounded flex-grow"
+          />
+          <input
+            type="file"
+            name="file"
+            ref={fileInputRef}
+            onChange={handleChange}
+            className="border p-2 rounded"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-1"
+          >
+            <IoCloudUploadOutline /> Upload
+          </button>
+        </form>
       </section>
     </div>
   );

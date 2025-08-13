@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FullPageSpinner } from "../components/ui/Spinner";
+import Spinner from "../components/ui/Spinner"; // use default export
 
 const ProtectedRoute = ({
   children,
@@ -19,7 +19,7 @@ const ProtectedRoute = ({
       if (loading || !requireAuth) return;
       setIsVerifyingAccess(true);
       try {
-        if (isAuthenticated && user && refreshUser) {
+        if (isAuthenticated && user && typeof refreshUser === "function") {
           await refreshUser();
         }
       } catch (error) {
@@ -38,23 +38,40 @@ const ProtectedRoute = ({
     refreshUser,
   ]);
 
+  // Still loading or checking access
   if (loading || isVerifyingAccess) {
-    return <FullPageSpinner text="Verifying access..." />;
+    return <Spinner fullScreen text="Checking access..." />;
   }
 
+  // Not authenticated
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to={fallbackPath} replace />;
+    return <Navigate to={fallbackPath} replace state={{ from: location }} />;
   }
 
   if (requireAuth && user) {
-    if (!allowSuspended && user.role?.toLowerCase() === "suspend") {
-      return <Navigate to="/unauthorized" replace />;
+    // Block suspended accounts unless explicitly allowed
+    if (!allowSuspended && user.status?.toLowerCase() === "suspended") {
+      return (
+        <Navigate
+          to="/unauthorized"
+          replace
+          state={{ reason: "suspended_account" }}
+        />
+      );
     }
+
+    // Enforce allowed roles if given
     if (
       roles.length > 0 &&
       !roles.map((r) => r.toLowerCase()).includes(user.role?.toLowerCase())
     ) {
-      return <Navigate to="/unauthorized" replace />;
+      return (
+        <Navigate
+          to="/unauthorized"
+          replace
+          state={{ reason: "insufficient_permissions" }}
+        />
+      );
     }
   }
 
@@ -62,17 +79,25 @@ const ProtectedRoute = ({
 };
 
 export default ProtectedRoute;
+
+// Role-based wrappers
 export const AdminRoute = (props) => (
-  <ProtectedRoute roles={["admin"]} {...props} />
+  <ProtectedRoute roles={["Admin"]} {...props} />
 );
 export const MentorRoute = (props) => (
-  <ProtectedRoute roles={["mentor"]} {...props} />
+  <ProtectedRoute roles={["Mentor"]} {...props} />
 );
 export const InternRoute = (props) => (
-  <ProtectedRoute roles={["intern"]} {...props} />
+  <ProtectedRoute roles={["Intern"]} {...props} />
 );
+
+// Guest-only
 export const GuestRoute = ({ children, redirectTo = "/" }) => {
   const { isAuthenticated } = useAuth();
   return !isAuthenticated ? children : <Navigate to={redirectTo} replace />;
 };
-export const AuthenticatedRoute = (props) => <ProtectedRoute {...props} />;
+
+// Authenticated-only
+export const AuthenticatedRoute = (props) => (
+  <ProtectedRoute requireAuth {...props} />
+);

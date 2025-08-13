@@ -14,6 +14,7 @@ const Spinner = ({
     lg: "w-8 h-8 border-4",
     xl: "w-12 h-12 border-4",
   };
+
   const colorClasses = {
     primary: "border-blue-600 border-t-transparent",
     white: "border-white border-t-transparent",
@@ -23,22 +24,24 @@ const Spinner = ({
     danger: "border-red-600 border-t-transparent",
     current: "border-current border-t-transparent",
   };
+
   const spinnerClasses = `${sizeClasses[size]} ${colorClasses[color]} border-solid rounded-full animate-spin ${className}`;
 
   const content = (
-    <div className="flex flex-col items-center">
+    <div
+      className={`flex flex-col items-center justify-center ${fullScreen ? "h-screen" : ""}`}
+    >
       <div className={spinnerClasses} />
       {text && <p className="mt-2 text-sm text-gray-500">{text}</p>}
     </div>
   );
 
-  return fullScreen ? (
-    <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-      {content}
-    </div>
-  ) : (
-    content
-  );
+  return content;
 };
+
+// Named export so you can import { FullPageSpinner }
+export const FullPageSpinner = (props) => (
+  <Spinner fullScreen text="Loading..." {...props} />
+);
 
 export default Spinner;
