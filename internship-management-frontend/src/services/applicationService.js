@@ -9,14 +9,11 @@ import {
 
 /**
  * SUBMIT APPLICATION
- * @param {Object} applicationData - Application details
- * @returns {Promise<Object>} - Created application
  */
 export const submitApplication = async (applicationData) => {
   try {
     console.log("Submitting new application...");
 
-    // Validate required fields
     const requiredFields = ["internshipId", "userId", "coverLetter"];
     for (const field of requiredFields) {
       if (!applicationData[field]) {
@@ -30,7 +27,6 @@ export const submitApplication = async (applicationData) => {
       submittedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-
     return await saveData("applications", applicationPayload, "POST");
   } catch (error) {
     console.error("Failed to submit application:", error);
@@ -39,9 +35,7 @@ export const submitApplication = async (applicationData) => {
 };
 
 /**
- * GET ALL APPLICATIONS (Admin/Mentor view)
- * @param {Object} filters - Optional filters
- * @returns {Promise<Array>} - Array of applications
+ * GET ALL APPLICATIONS
  */
 export const getAllApplications = async (filters = {}) => {
   try {
@@ -54,9 +48,7 @@ export const getAllApplications = async (filters = {}) => {
 };
 
 /**
- * GET MY APPLICATIONS (Intern view)
- * @param {string|number} userId - User ID
- * @returns {Promise<Array>} - User's applications
+ * GET MY APPLICATIONS
  */
 export const getMyApplications = async (userId) => {
   try {
@@ -69,9 +61,7 @@ export const getMyApplications = async (userId) => {
 };
 
 /**
- * GET APPLICATION BY ID
- * @param {string|number} id - Application ID
- * @returns {Promise<Object>} - Single application
+ * GET BY ID
  */
 export const getApplicationById = async (id) => {
   try {
@@ -84,24 +74,17 @@ export const getApplicationById = async (id) => {
 };
 
 /**
- * UPDATE APPLICATION STATUS (Admin/Mentor)
- * @param {string|number} id - Application ID
- * @param {string} status - New status (Pending, Approved, Rejected, Under Review)
- * @param {string} reviewNotes - Optional review notes
- * @returns {Promise<Object>} - Updated application
+ * UPDATE STATUS
  */
 export const updateApplicationStatus = async (id, status, reviewNotes = "") => {
   try {
-    console.log(`Updating application ${id} status to: ${status}`);
-
-    const updates = {
+    console.log(`Updating status for ${id} to ${status}`);
+    return await updateDataById("applications", id, {
       status,
       reviewNotes,
       reviewedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-
-    return await updateDataById("applications", id, updates);
+    });
   } catch (error) {
     console.error("Failed to update application status:", error);
     throw new Error("Unable to update application status.");
@@ -109,21 +92,15 @@ export const updateApplicationStatus = async (id, status, reviewNotes = "") => {
 };
 
 /**
- * WITHDRAW APPLICATION (Intern)
- * @param {string|number} id - Application ID
- * @param {string|number} userId - User ID (for verification)
- * @returns {Promise<Object>} - Updated application
+ * WITHDRAW APPLICATION
  */
 export const withdrawApplication = async (id, userId) => {
   try {
-    console.log(`Withdrawing application ${id} for user: ${userId}`);
-
-    // First verify this application belongs to the user
+    console.log(`Withdrawing application ${id} for ${userId}`);
     const application = await getApplicationById(id);
     if (application.userId !== userId) {
       throw new Error("You can only withdraw your own applications.");
     }
-
     return await updateDataById("applications", id, {
       status: "Withdrawn",
       withdrawnAt: new Date().toISOString(),
@@ -136,10 +113,7 @@ export const withdrawApplication = async (id, userId) => {
 };
 
 /**
- * GET APPLICATIONS BY STATUS
- * @param {string} status - Application status
- * @param {Object} additionalFilters - Additional filters
- * @returns {Promise<Array>} - Filtered applications
+ * GET BY STATUS
  */
 export const getApplicationsByStatus = async (
   status,
@@ -147,8 +121,7 @@ export const getApplicationsByStatus = async (
 ) => {
   try {
     console.log(`Fetching applications with status: ${status}`);
-    const filters = { status, ...additionalFilters };
-    return await getData("applications", filters);
+    return await getData("applications", { status, ...additionalFilters });
   } catch (error) {
     console.error("Failed to fetch applications by status:", error);
     throw new Error("Unable to load applications.");
@@ -156,24 +129,20 @@ export const getApplicationsByStatus = async (
 };
 
 /**
- * GET APPLICATIONS FOR INTERNSHIP (Admin view)
- * @param {string|number} internshipId - Internship ID
- * @returns {Promise<Array>} - Applications for specific internship
+ * GET FOR INTERNSHIP
  */
 export const getApplicationsForInternship = async (internshipId) => {
   try {
     console.log(`Fetching applications for internship: ${internshipId}`);
     return await getData("applications", { internshipId });
   } catch (error) {
-    console.error("Failed to fetch applications for internship:", error);
+    console.error("Failed to fetch applications:", error);
     throw new Error("Unable to load internship applications.");
   }
 };
 
 /**
- * GET APPLICATIONS FOR MENTOR (Mentor view)
- * @param {string|number} mentorId - Mentor ID
- * @returns {Promise<Array>} - Applications assigned to mentor
+ * GET FOR MENTOR
  */
 export const getApplicationsForMentor = async (mentorId) => {
   try {
@@ -186,15 +155,11 @@ export const getApplicationsForMentor = async (mentorId) => {
 };
 
 /**
- * ASSIGN MENTOR TO APPLICATION (Admin)
- * @param {string|number} applicationId - Application ID
- * @param {string|number} mentorId - Mentor ID
- * @returns {Promise<Object>} - Updated application
+ * ASSIGN MENTOR
  */
 export const assignMentorToApplication = async (applicationId, mentorId) => {
   try {
-    console.log(`Assigning mentor ${mentorId} to application ${applicationId}`);
-
+    console.log(`Assigning mentor ${mentorId} to ${applicationId}`);
     return await updateDataById("applications", applicationId, {
       assignedMentorId: mentorId,
       mentorAssignedAt: new Date().toISOString(),
@@ -202,113 +167,80 @@ export const assignMentorToApplication = async (applicationId, mentorId) => {
     });
   } catch (error) {
     console.error("Failed to assign mentor:", error);
-    throw new Error("Unable to assign mentor to application.");
+    throw new Error("Unable to assign mentor.");
   }
 };
 
 /**
- * ADD APPLICATION DOCUMENT/ATTACHMENT
- * @param {string|number} applicationId - Application ID
- * @param {Object} documentData - Document info
- * @returns {Promise<Object>} - Updated application
+ * ADD DOCUMENT
  */
 export const addApplicationDocument = async (applicationId, documentData) => {
   try {
     console.log(`Adding document to application ${applicationId}`);
-
     const application = await getApplicationById(applicationId);
     const updatedDocuments = [
       ...(application.documents || []),
-      {
-        ...documentData,
-        uploadedAt: new Date().toISOString(),
-      },
+      { ...documentData, uploadedAt: new Date().toISOString() },
     ];
-
     return await updateDataById("applications", applicationId, {
       documents: updatedDocuments,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Failed to add application document:", error);
-    throw new Error("Unable to add document to application.");
+    console.error("Failed to add document:", error);
+    throw new Error("Unable to add document.");
   }
 };
 
 /**
  * CHECK IF USER ALREADY APPLIED
- * @param {string|number} userId - User ID
- * @param {string|number} internshipId - Internship ID
- * @returns {Promise<boolean>} - True if already applied
  */
 export const hasUserApplied = async (userId, internshipId) => {
   try {
-    console.log(
-      `Checking if user ${userId} applied for internship ${internshipId}`
-    );
-
     const applications = await getData("applications", {
       userId,
       internshipId,
-      status_ne: "Withdrawn", // Not withdrawn
+      status_ne: "Withdrawn",
     });
-
     return applications.length > 0;
   } catch (error) {
-    console.error("Failed to check application status:", error);
+    console.error("Failed to check if user applied:", error);
     return false;
   }
 };
 
 /**
- * GET APPLICATION STATISTICS (Admin)
- * @returns {Promise<Object>} - Application stats
+ * GET STATISTICS
  */
 export const getApplicationStats = async () => {
   try {
-    console.log("Fetching application statistics...");
-
-    const allApplications = await getData("applications");
-
-    const stats = {
-      total: allApplications.length,
-      pending: allApplications.filter((app) => app.status === "Pending").length,
-      approved: allApplications.filter((app) => app.status === "Approved")
-        .length,
-      rejected: allApplications.filter((app) => app.status === "Rejected")
-        .length,
-      underReview: allApplications.filter(
-        (app) => app.status === "Under Review"
-      ).length,
-      withdrawn: allApplications.filter((app) => app.status === "Withdrawn")
-        .length,
+    const all = await getData("applications");
+    return {
+      total: all.length,
+      pending: all.filter((a) => a.status === "Pending").length,
+      approved: all.filter((a) => a.status === "Approved").length,
+      rejected: all.filter((a) => a.status === "Rejected").length,
+      underReview: all.filter((a) => a.status === "Under Review").length,
+      withdrawn: all.filter((a) => a.status === "Withdrawn").length,
     };
-
-    return stats;
   } catch (error) {
-    console.error("Failed to fetch application statistics:", error);
-    throw new Error("Unable to load application statistics.");
+    console.error("Failed to fetch stats:", error);
+    throw new Error("Unable to load stats.");
   }
 };
 
 /**
- * BULK UPDATE APPLICATIONS (Admin)
- * @param {Array} applicationIds - Array of application IDs
- * @param {Object} updates - Updates to apply
- * @returns {Promise<Array>} - Updated applications
+ * BULK UPDATE
  */
 export const bulkUpdateApplications = async (applicationIds, updates) => {
   try {
-    console.log(`Bulk updating ${applicationIds.length} applications`);
-
-    const updatePromises = applicationIds.map((id) =>
+    const promises = applicationIds.map((id) =>
       updateDataById("applications", id, {
         ...updates,
         updatedAt: new Date().toISOString(),
       })
     );
-
-    return await Promise.all(updatePromises);
+    return await Promise.all(promises);
   } catch (error) {
     console.error("Failed to bulk update applications:", error);
     throw new Error("Unable to update applications.");

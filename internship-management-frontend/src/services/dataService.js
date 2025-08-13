@@ -1,22 +1,19 @@
 import axios from "axios";
+import { getAccessToken } from "./authService";
 
-// Base API URL - should match your backend
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
 
-// Create axios instance for data operations
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
-// Add auth token to requests
+// Request interceptor: attach token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,28 +22,22 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle API errors
+// Response error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error("API Error:", error.response?.data || error.message);
-
-    // If 401, redirect to login (token expired/invalid)
     if (error.response?.status === 401) {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("currentUser");
       window.location.href = "/login";
     }
-
     return Promise.reject(error);
   }
 );
 
-/**
- * API ENDPOINT MAPPING
- * Map your mock data keys to real backend endpoints
- */
+// Map of data keys to endpoints
 const ENDPOINT_MAP = {
   internships: "/internships",
   users: "/users",
@@ -55,211 +46,112 @@ const ENDPOINT_MAP = {
   tasks: "/tasks",
   mentorAssignments: "/mentors/assignments",
   updates: "/updates",
+  notifications: "/notifications",
 };
 
-/**
- * GET DATA - Fetch from backend API
- * @param {string} key - Data type (internships, users, etc.)
- * @param {object} params - Query parameters
- * @returns {Promise<Array>} - Data array from API
- */
+// GET LIST DATA
 export const getData = async (key, params = {}) => {
+  const endpoint = ENDPOINT_MAP[key];
+  if (!endpoint) throw new Error(`Unknown data key: ${key}`);
   try {
-    const endpoint = ENDPOINT_MAP[key];
-    if (!endpoint) {
-      throw new Error(`Unknown data key: ${key}`);
-    }
-
-    console.log(`Fetching ${key} from API...`);
     const response = await api.get(endpoint, { params });
-
     return response.data.data || response.data || [];
-  } catch (error) {
-    console.error(`Error fetching ${key}:`, error);
+  } catch (err) {
+    console.error(`Error fetching ${key}:`, err);
     throw new Error(
-      `Failed to fetch ${key}: ${
-        error.response?.data?.message || error.message
-      }`
+      `Failed to fetch ${key}: ${err.response?.data?.message || err.message}`
     );
   }
 };
 
-/**
- * SAVE DATA - Send to backend API
- * @param {string} key - Data type
- * @param {Array|Object} data - Data to save
- * @param {string} method - HTTP method (POST, PUT, PATCH)
- * @returns {Promise<Object>} - Saved data from API
- */
+// SAVE DATA
 export const saveData = async (key, data, method = "POST") => {
+  const endpoint = ENDPOINT_MAP[key];
+  if (!endpoint) throw new Error(`Unknown data key: ${key}`);
   try {
-    const endpoint = ENDPOINT_MAP[key];
-    if (!endpoint) {
-      throw new Error(`Unknown data key: ${key}`);
-    }
-
-    console.log(`Saving ${key} to API...`);
     let response;
-
-    switch (method.toUpperCase()) {
-      case "POST":
-        response = await api.post(endpoint, data);
-        break;
-      case "PUT":
-        response = await api.put(endpoint, data);
-        break;
-      case "PATCH":
-        response = await api.patch(endpoint, data);
-        break;
-      default:
-        throw new Error(`Unsupported method: ${method}`);
-    }
-
+    const httpMethod = method.toUpperCase();
+    if (httpMethod === "POST") response = await api.post(endpoint, data);
+    else if (httpMethod === "PUT") response = await api.put(endpoint, data);
+    else if (httpMethod === "PATCH") response = await api.patch(endpoint, data);
+    else throw new Error(`Unsupported method: ${method}`);
     return response.data.data || response.data;
-  } catch (error) {
-    console.error(`Error saving ${key}:`, error);
+  } catch (err) {
+    console.error(`Error saving ${key}:`, err);
     throw new Error(
-      `Failed to save ${key}: ${error.response?.data?.message || error.message}`
+      `Failed to save ${key}: ${err.response?.data?.message || err.message}`
     );
   }
 };
 
-/**
- * GET SINGLE ITEM by ID
- * @param {string} key - Data type
- * @param {string|number} id - Item ID
- * @returns {Promise<Object>} - Single item
- */
+// GET SINGLE ITEM
 export const getDataById = async (key, id) => {
+  const endpoint = ENDPOINT_MAP[key];
+  if (!endpoint) throw new Error(`Unknown data key: ${key}`);
   try {
-    const endpoint = ENDPOINT_MAP[key];
-    if (!endpoint) {
-      throw new Error(`Unknown data key: ${key}`);
-    }
-
-    console.log(`Fetching ${key} with ID ${id}...`);
     const response = await api.get(`${endpoint}/${id}`);
-
     return response.data.data || response.data;
-  } catch (error) {
-    console.error(`Error fetching ${key} by ID:`, error);
+  } catch (err) {
+    console.error(`Error fetching ${key} by ID:`, err);
     throw new Error(
-      `Failed to fetch ${key}: ${
-        error.response?.data?.message || error.message
+      `Failed to fetch ${key} by ID: ${
+        err.response?.data?.message || err.message
       }`
     );
   }
 };
 
-/**
- * UPDATE SINGLE ITEM by ID
- * @param {string} key - Data type
- * @param {string|number} id - Item ID
- * @param {Object} updates - Data to update
- * @returns {Promise<Object>} - Updated item
- */
+// UPDATE BY ID
 export const updateDataById = async (key, id, updates) => {
+  const endpoint = ENDPOINT_MAP[key];
+  if (!endpoint) throw new Error(`Unknown data key: ${key}`);
   try {
-    const endpoint = ENDPOINT_MAP[key];
-    if (!endpoint) {
-      throw new Error(`Unknown data key: ${key}`);
-    }
-
-    console.log(`Updating ${key} with ID ${id}...`);
     const response = await api.put(`${endpoint}/${id}`, updates);
-
     return response.data.data || response.data;
-  } catch (error) {
-    console.error(`Error updating ${key}:`, error);
+  } catch (err) {
+    console.error(`Error updating ${key} by ID:`, err);
     throw new Error(
-      `Failed to update ${key}: ${
-        error.response?.data?.message || error.message
-      }`
+      `Failed to update ${key}: ${err.response?.data?.message || err.message}`
     );
   }
 };
 
-/**
- * DELETE ITEM by ID
- * @param {string} key - Data type
- * @param {string|number} id - Item ID
- * @returns {Promise<boolean>} - Success status
- */
+// DELETE BY ID
 export const deleteDataById = async (key, id) => {
+  const endpoint = ENDPOINT_MAP[key];
+  if (!endpoint) throw new Error(`Unknown data key: ${key}`);
   try {
-    const endpoint = ENDPOINT_MAP[key];
-    if (!endpoint) {
-      throw new Error(`Unknown data key: ${key}`);
-    }
-
-    console.log(`Deleting ${key} with ID ${id}...`);
     await api.delete(`${endpoint}/${id}`);
-
     return true;
-  } catch (error) {
-    console.error(`Error deleting ${key}:`, error);
+  } catch (err) {
+    console.error(`Error deleting ${key}:`, err);
     throw new Error(
-      `Failed to delete ${key}: ${
-        error.response?.data?.message || error.message
-      }`
+      `Failed to delete ${key}: ${err.response?.data?.message || err.message}`
     );
   }
 };
 
-/**
- * SEARCH DATA with filters
- * @param {string} key - Data type
- * @param {Object} filters - Search filters
- * @returns {Promise<Array>} - Filtered results
- */
+// SEARCH DATA
 export const searchData = async (key, filters = {}) => {
+  const endpoint = ENDPOINT_MAP[key];
+  if (!endpoint) throw new Error(`Unknown data key: ${key}`);
   try {
-    const endpoint = ENDPOINT_MAP[key];
-    if (!endpoint) {
-      throw new Error(`Unknown data key: ${key}`);
-    }
-
-    console.log(`Searching ${key} with filters:`, filters);
     const response = await api.get(`${endpoint}/search`, { params: filters });
-
     return response.data.data || response.data || [];
-  } catch (error) {
-    console.error(`Error searching ${key}:`, error);
+  } catch (err) {
+    console.error(`Error searching ${key}:`, err);
     throw new Error(
-      `Failed to search ${key}: ${
-        error.response?.data?.message || error.message
-      }`
+      `Failed to search ${key}: ${err.response?.data?.message || err.message}`
     );
   }
 };
 
-/**
- * BACKWARDS COMPATIBILITY FUNCTIONS
- * These maintain the old interface while using new API calls
- */
-
-// Legacy function - now just calls getData
-export const initializeData = () => {
-  console.log("initializeData is deprecated - data now comes from API");
-  return Promise.resolve();
-};
-
-// Legacy function - now just calls getData
-export const forceReloadData = () => {
-  console.log("forceReloadData is deprecated - data now comes from API");
-  return Promise.resolve();
-};
-
-/**
- * SPECIALIZED FUNCTIONS for common operations
- */
-
-// Get data for current user (filtered by role/permissions)
+// GET DATA FOR CURRENT USER
 export const getMyData = async (key, userId) => {
   return getData(key, { userId, mine: true });
 };
 
-// Get paginated data
+// PAGINATED DATA
 export const getPaginatedData = async (
   key,
   page = 1,
@@ -270,15 +162,16 @@ export const getPaginatedData = async (
   return getData(key, params);
 };
 
-// Bulk operations
+// BULK SAVE
 export const bulkSaveData = async (key, dataArray) => {
+  const endpoint = ENDPOINT_MAP[key];
+  if (!endpoint) throw new Error(`Unknown data key: ${key}`);
   try {
-    const endpoint = ENDPOINT_MAP[key];
     const response = await api.post(`${endpoint}/bulk`, { items: dataArray });
     return response.data.data || response.data;
-  } catch (error) {
-    console.error(`Error bulk saving ${key}:`, error);
-    throw error;
+  } catch (err) {
+    console.error(`Error bulk saving ${key}:`, err);
+    throw err;
   }
 };
 
@@ -292,6 +185,4 @@ export default {
   getMyData,
   getPaginatedData,
   bulkSaveData,
-  initializeData, // Legacy
-  forceReloadData, // Legacy
 };
