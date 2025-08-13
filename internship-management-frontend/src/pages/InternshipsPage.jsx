@@ -515,7 +515,7 @@ const InternshipsPage = () => {
             >
               {paginatedInternships.map((internship) => (
                 <div
-                  key={internship.id}
+                  key={internship._id}
                   className={`bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-100 hover:border-blue-200 ${
                     viewMode === "list" ? "flex p-6" : "p-6"
                   }`}

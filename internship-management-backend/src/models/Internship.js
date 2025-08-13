@@ -13,6 +13,7 @@ const internshipSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    status: { type: String, enum: ["active", "closed"], default: "active" },
   },
   { timestamps: true }
 );

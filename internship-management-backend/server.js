@@ -1,4 +1,14 @@
 // Load environment variables first
+
+// At the VERY top of server.js
+process.on("uncaughtException", err => {
+  console.error("🔥 Uncaught exception:", err);
+  console.error(err.stack);
+});
+process.on("unhandledRejection", err => {
+  console.error("🔥 Unhandled rejection:", err);
+});
+
 const dotenv = require("dotenv");
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();

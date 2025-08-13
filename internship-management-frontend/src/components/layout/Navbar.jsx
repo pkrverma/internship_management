@@ -25,7 +25,7 @@ const Navbar = ({ onSidebarToggle, showSidebarToggle = false }) => {
       const fetchNotificationCount = async () => {
         try {
           const count = await getNotificationCount();
-          setNotificationCount(count.unread || 0);
+          setNotificationCount(count.unread || count.count || 0);
         } catch (error) {
           console.error("Failed to fetch notification count:", error);
         }
@@ -63,11 +63,11 @@ const Navbar = ({ onSidebarToggle, showSidebarToggle = false }) => {
     if (!user?.role) return "/notifications";
     switch (user.role) {
       case "Admin":
-        return "/admin/notifications";
+        return "/notifications";
       case "Intern":
-        return "/intern/notifications";
+        return "/notifications";
       case "Mentor":
-        return "/mentor/notifications";
+        return "/notifications";
       default:
         return "/notifications";
     }

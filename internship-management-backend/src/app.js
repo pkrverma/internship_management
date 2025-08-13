@@ -7,6 +7,8 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const internshipRoutes = require("./routes/internshipRoutes");
 const errorHandler = require("./middleware/errorHandler");
+const statsRoutes = require("./routes/statsRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 
@@ -43,12 +45,12 @@ app.use(
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true, // Allow cookies & Authorization headers
-    optionsSuccessStatus: 200, // For legacy browsers handling OPTIONS
+    optionsSuccessStatus: 200, // For legacy browsers
   })
 );
 
-// ✅ Pre-flight request handler for all routes
-app.options("*", cors());
+// ✅ Pre-flight request handler for all routes (Express 5-safe)
+app.options(/.*/, cors());
 
 // ✅ Body parser for JSON
 app.use(express.json());
@@ -73,17 +75,18 @@ app.get("/", (req, res) => {
   res.send("Internship Management API is running 🚀");
 });
 
-// ✅ Global error handler (last middleware)
-app.use(errorHandler);
+app.use("/api/stats", statsRoutes);
+
+app.use("/api/notifications", notificationRoutes);
 
 // =======================
 // Catch-all 404 for unmatched routes (Express 5 safe)
 // =======================
-app.all("/*", (req, res, next) => {
+app.all(/.*/, (req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
-// Global error handler (last)
+// ✅ Global error handler (must be last)
 app.use(errorHandler);
 
 module.exports = app;

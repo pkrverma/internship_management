@@ -1,4 +1,3 @@
-// src/pages/NotFound.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -16,17 +15,19 @@ const NotFound = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [countdown, setCountdown] = useState(10);
   const [autoRedirect, setAutoRedirect] = useState(true);
+  const [redirectNow, setRedirectNow] = useState(false); // NEW FLAG
 
-  // Auto redirect countdown
+  // Countdown timer
   useEffect(() => {
     if (!autoRedirect) return;
 
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          handleAutoRedirect();
+          setRedirectNow(true); // trigger redirect instead of navigating directly
           return 0;
         }
         return prev - 1;
@@ -36,7 +37,10 @@ const NotFound = () => {
     return () => clearInterval(timer);
   }, [autoRedirect]);
 
-  const handleAutoRedirect = () => {
+  // Actual navigation in effect (safe)
+  useEffect(() => {
+    if (!redirectNow) return;
+
     if (isAuthenticated && user) {
       const dashboardPath =
         user.role === "Admin"
@@ -50,7 +54,7 @@ const NotFound = () => {
     } else {
       navigate("/", { replace: true });
     }
-  };
+  }, [redirectNow, isAuthenticated, user, navigate]);
 
   const cancelAutoRedirect = () => {
     setAutoRedirect(false);
@@ -84,7 +88,6 @@ const NotFound = () => {
             : user.role === "Intern"
               ? "/intern/dashboard"
               : "/";
-
       commonLinks.unshift({
         to: dashboardPath,
         label: `${user.role} Dashboard`,
@@ -111,16 +114,17 @@ const NotFound = () => {
   const handleReportError = () => {
     const subject = `404 Error Report - ${window.location.href}`;
     const body = `I encountered a 404 error on the following page:\n\nURL: ${window.location.href}\nTimestamp: ${new Date().toISOString()}\nUser Agent: ${navigator.userAgent}\n\nAdditional details:\n`;
-
     window.open(
-      `mailto:support@aninex.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      `mailto:support@aninex.com?subject=${encodeURIComponent(
+        subject
+      )}&body=${encodeURIComponent(body)}`
     );
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto text-center">
-        {/* Animated 404 */}
+        {/* 404 animation */}
         <div className="relative mb-8">
           <div className="text-9xl sm:text-[12rem] font-black text-gray-200 select-none animate-pulse">
             404
@@ -132,7 +136,7 @@ const NotFound = () => {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main */}
         <div className="space-y-6">
           <div className="space-y-2">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
@@ -144,7 +148,7 @@ const NotFound = () => {
             </p>
           </div>
 
-          {/* Error Details */}
+          {/* Details */}
           <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
             <div className="space-y-2">
               <p className="text-sm text-gray-600">
@@ -159,7 +163,7 @@ const NotFound = () => {
             </div>
           </div>
 
-          {/* Auto Redirect Notice */}
+          {/* Auto redirect notice */}
           {autoRedirect && countdown > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mx-auto max-w-md">
               <div className="flex items-center justify-center space-x-2 text-blue-700">
@@ -177,7 +181,7 @@ const NotFound = () => {
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* Action buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
               onClick={handleGoBack}
@@ -196,7 +200,7 @@ const NotFound = () => {
             </Link>
           </div>
 
-          {/* Recommended Links */}
+          {/* Recommended links */}
           <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Popular Destinations
@@ -215,7 +219,7 @@ const NotFound = () => {
             </div>
           </div>
 
-          {/* Search Suggestion */}
+          {/* Search suggestion */}
           <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
             <div className="flex items-center justify-center space-x-2 mb-3">
               <IoSearchOutline className="w-5 h-5 text-green-600" />
@@ -236,7 +240,7 @@ const NotFound = () => {
             </Link>
           </div>
 
-          {/* Help Section */}
+          {/* Help section */}
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-gray-600">
             <button
               onClick={handleReportError}
@@ -263,7 +267,7 @@ const NotFound = () => {
             </a>
           </div>
 
-          {/* Fun Message */}
+          {/* Fun message */}
           <div className="text-xs text-gray-500 italic">
             "Not all who wander are lost... but this page definitely is! 🗺️"
           </div>
