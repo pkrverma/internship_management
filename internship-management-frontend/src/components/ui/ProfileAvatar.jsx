@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { UserIcon } from "@heroicons/react/outline";
+import { UserIcon } from "@heroicons/react/24/outline";
 
 // Helper function to get initials from a name
 const getInitials = (name = "") => {

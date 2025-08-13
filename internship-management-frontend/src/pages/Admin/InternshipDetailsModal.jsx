@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getData, saveData } from "../../services/dataService";
 import {
-  updateInternshipStatus,
+  toggleInternshipStatus,
   deleteInternship,
 } from "../../services/internshipService";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";

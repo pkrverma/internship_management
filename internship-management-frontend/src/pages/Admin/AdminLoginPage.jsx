@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Spinner from "../../components/ui/Spinner";
 import AninexLogo from "../../assets/images/aninex-logo.jpeg";
-import { ShieldCheckIcon, LockClosedIcon } from "@heroicons/react/outline";
+import { ShieldCheckIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 
 const AdminLoginPage = () => {
   const { login, isAuthenticated, user, loading: authLoading } = useAuth();

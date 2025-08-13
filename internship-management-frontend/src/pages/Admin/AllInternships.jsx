@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { getData, saveData } from "../../services/dataService";
 import {
   getAllInternships,
-  updateInternshipStatus,
+  toggleInternshipStatus,
   deleteInternship,
 } from "../../services/internshipService";
 import InternshipCard from "../../components/admin/AdminInternshipCard";
@@ -419,7 +419,7 @@ const AllInternships = () => {
       setRefreshing(true);
 
       // Update internship status
-      await updateInternshipStatus(internshipId, newStatus);
+      await toggleInternshipStatus(internshipId, newStatus);
 
       // Update stats
       const stats = getData("internshipStats") || [];
