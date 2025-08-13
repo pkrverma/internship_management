@@ -21,17 +21,26 @@ const UnauthorizedPage = () => {
   const [reason, setReason] = useState("general");
 
   useEffect(() => {
-    // Determine the reason for unauthorized access
-    const path = location.pathname;
+    // Determine reason for unauthorized access
+    const path = location.pathname.toLowerCase();
     const state = location.state;
 
     if (state?.reason) {
       setReason(state.reason);
-    } else if (path.startsWith("/admin") && user?.role !== "Admin") {
+    } else if (
+      path.startsWith("/admin") &&
+      user?.role?.toLowerCase() !== "admin"
+    ) {
       setReason("admin_only");
-    } else if (path.startsWith("/mentor") && user?.role !== "Mentor") {
+    } else if (
+      path.startsWith("/mentor") &&
+      user?.role?.toLowerCase() !== "mentor"
+    ) {
       setReason("mentor_only");
-    } else if (path.startsWith("/intern") && user?.role !== "Intern") {
+    } else if (
+      path.startsWith("/intern") &&
+      user?.role?.toLowerCase() !== "intern"
+    ) {
       setReason("intern_only");
     } else if (!isAuthenticated) {
       setReason("login_required");
@@ -78,7 +87,6 @@ const UnauthorizedPage = () => {
             },
           ],
         };
-
       case "admin_only":
         return {
           title: "Admin Access Required",
@@ -104,7 +112,6 @@ const UnauthorizedPage = () => {
             },
           ],
         };
-
       case "mentor_only":
         return {
           title: "Mentor Access Required",
@@ -131,7 +138,6 @@ const UnauthorizedPage = () => {
             },
           ],
         };
-
       case "intern_only":
         return {
           title: "Intern Access Required",
@@ -158,7 +164,6 @@ const UnauthorizedPage = () => {
             },
           ],
         };
-
       case "insufficient_permissions":
         return {
           title: "Insufficient Permissions",
@@ -183,7 +188,6 @@ const UnauthorizedPage = () => {
             },
           ],
         };
-
       default:
         return {
           title: "Access Denied",
@@ -194,12 +198,7 @@ const UnauthorizedPage = () => {
           bgColor: "from-gray-50 to-slate-50",
           borderColor: "border-gray-200",
           actions: [
-            {
-              label: "Go Home",
-              to: "/",
-              primary: true,
-              icon: IoHomeOutline,
-            },
+            { label: "Go Home", to: "/", primary: true, icon: IoHomeOutline },
             {
               label: "Sign In",
               to: "/login",
@@ -217,149 +216,67 @@ const UnauthorizedPage = () => {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br ${config.bgColor} flex items-center justify-center px-4 sm:px-6 lg:px-8`}
+      className={`min-h-screen bg-gradient-to-br ${config.bgColor} flex items-center justify-center px-4`}
     >
-      <div className="max-w-2xl mx-auto text-center">
-        {/* Icon and Visual */}
-        <div className="relative mb-8">
-          <div
-            className={`mx-auto w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 ${config.borderColor} animate-pulse`}
-          >
-            <IconComponent className={`w-16 h-16 ${config.iconColor}`} />
-          </div>
+      <div
+        className={`max-w-lg w-full bg-white rounded-xl shadow-lg border ${config.borderColor} p-8`}
+      >
+        <div className="flex flex-col items-center text-center">
+          <IconComponent className={`text-5xl mb-4 ${config.iconColor}`} />
+          <h1 className="text-2xl font-bold mb-2">{config.title}</h1>
+          <p className="text-gray-600 mb-6">{config.description}</p>
 
-          {/* Floating elements */}
-          <div className="absolute -top-4 -right-4 w-8 h-8 bg-red-400 rounded-full animate-bounce delay-300 opacity-70"></div>
-          <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-yellow-400 rounded-full animate-bounce delay-500 opacity-70"></div>
-        </div>
-
-        {/* Main Content */}
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
-              {config.title}
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-600 max-w-lg mx-auto leading-relaxed">
-              {config.description}
-            </p>
-          </div>
-
-          {/* Current User Info */}
-          {isAuthenticated && user && (
-            <div
-              className={`bg-white/80 backdrop-blur-sm rounded-xl p-6 border ${config.borderColor} shadow-lg mx-auto max-w-md`}
-            >
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Current User:</span> {user.name}
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Account Type:</span>{" "}
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      user.role === "Admin"
-                        ? "bg-red-100 text-red-800"
-                        : user.role === "Mentor"
-                          ? "bg-blue-100 text-blue-800"
-                          : user.role === "Intern"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
+          {/* Action buttons */}
+          <div className="flex flex-col gap-3 w-full">
+            {config.actions.map((action, idx) => {
+              const ActionIcon = action.icon;
+              if (action.onClick) {
+                return (
+                  <button
+                    key={idx}
+                    onClick={action.onClick}
+                    className={`px-4 py-2 rounded-md flex items-center justify-center gap-2 ${
+                      action.primary
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
-                    {user.role}
-                  </span>
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Attempted Access:</span>{" "}
-                  <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                    {location.pathname}
-                  </code>
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {config.actions.map((action, index) => {
-              const ActionContent = (
-                <>
-                  {action.icon && <action.icon className="mr-2 w-5 h-5" />}
-                  {action.label}
-                </>
-              );
-
-              const baseClasses =
-                "group inline-flex items-center px-6 py-3 text-sm font-medium rounded-xl transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl";
-
-              const buttonClasses = action.primary
-                ? `${baseClasses} text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700`
-                : `${baseClasses} text-blue-600 bg-white border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50`;
-
-              return action.onClick ? (
-                <button
-                  key={index}
-                  onClick={action.onClick}
-                  className={buttonClasses}
-                >
-                  {ActionContent}
-                </button>
-              ) : (
+                    <ActionIcon />
+                    {action.label}
+                  </button>
+                );
+              }
+              return (
                 <Link
-                  key={index}
+                  key={idx}
                   to={action.to}
-                  state={action.state}
-                  className={buttonClasses}
+                  state={action.state || null}
+                  className={`px-4 py-2 rounded-md flex items-center justify-center gap-2 ${
+                    action.primary
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
                 >
-                  {ActionContent}
+                  <ActionIcon />
+                  {action.label}
                 </Link>
               );
             })}
           </div>
 
-          {/* Additional Help */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Need Help?
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Link
-                to="/help"
-                className="flex items-center p-3 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 hover:text-blue-600 transition-all duration-200 group"
-              >
-                <IoHelpCircleOutline className="w-4 h-4 mr-3 group-hover:scale-110 transition-transform" />
-                Help Center
-              </Link>
-
-              <Link
-                to="/contact"
-                className="flex items-center p-3 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 hover:text-blue-600 transition-all duration-200 group"
-              >
-                <IoMailOutline className="w-4 h-4 mr-3 group-hover:scale-110 transition-transform" />
-                Contact Us
-              </Link>
-
-              <a
-                href="mailto:support@aninex.com"
-                className="flex items-center p-3 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 hover:text-blue-600 transition-all duration-200 group"
-              >
-                <IoMailOutline className="w-4 h-4 mr-3 group-hover:scale-110 transition-transform" />
-                Email Support
-              </a>
+          {user && (
+            <div className="mt-6 text-sm text-gray-500">
+              <div>
+                <strong>Current User:</strong> {user.name}
+              </div>
+              <div>
+                <strong>Account Type:</strong> {user.role}
+              </div>
+              <div>
+                <strong>Attempted Access:</strong> {location.pathname}
+              </div>
             </div>
-          </div>
-
-          {/* Security Note */}
-          <div className="text-xs text-gray-500 bg-gray-100 rounded-lg p-3 max-w-md mx-auto">
-            <div className="flex items-center justify-center space-x-2 mb-1">
-              <IoShieldOutline className="w-4 h-4" />
-              <span className="font-medium">Security Notice</span>
-            </div>
-            <p>
-              Access attempts are logged for security purposes. If you believe
-              this is an error, please contact our support team.
-            </p>
-          </div>
+          )}
         </div>
       </div>
     </div>

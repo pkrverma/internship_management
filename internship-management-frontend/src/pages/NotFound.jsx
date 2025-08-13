@@ -18,7 +18,7 @@ const NotFound = () => {
 
   const [countdown, setCountdown] = useState(10);
   const [autoRedirect, setAutoRedirect] = useState(true);
-  const [redirectNow, setRedirectNow] = useState(false); // NEW FLAG
+  const [redirectNow, setRedirectNow] = useState(false);
 
   // Countdown timer
   useEffect(() => {
@@ -27,7 +27,7 @@ const NotFound = () => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          setRedirectNow(true); // trigger redirect instead of navigating directly
+          setRedirectNow(true);
           return 0;
         }
         return prev - 1;
@@ -37,17 +37,18 @@ const NotFound = () => {
     return () => clearInterval(timer);
   }, [autoRedirect]);
 
-  // Actual navigation in effect (safe)
+  // Safe navigation after countdown
   useEffect(() => {
     if (!redirectNow) return;
 
     if (isAuthenticated && user) {
+      const role = user.role?.toLowerCase();
       const dashboardPath =
-        user.role === "Admin"
+        role === "admin"
           ? "/admin/dashboard"
-          : user.role === "Mentor"
+          : role === "mentor"
             ? "/mentor/dashboard"
-            : user.role === "Intern"
+            : role === "intern"
               ? "/intern/dashboard"
               : "/";
       navigate(dashboardPath, { replace: true });
@@ -70,7 +71,7 @@ const NotFound = () => {
   };
 
   const getRecommendedLinks = () => {
-    const commonLinks = [
+    const links = [
       { to: "/", label: "Home", icon: IoHomeOutline },
       {
         to: "/internships",
@@ -80,197 +81,153 @@ const NotFound = () => {
     ];
 
     if (isAuthenticated && user) {
+      const role = user.role?.toLowerCase();
       const dashboardPath =
-        user.role === "Admin"
+        role === "admin"
           ? "/admin/dashboard"
-          : user.role === "Mentor"
+          : role === "mentor"
             ? "/mentor/dashboard"
-            : user.role === "Intern"
+            : role === "intern"
               ? "/intern/dashboard"
               : "/";
-      commonLinks.unshift({
+      links.unshift({
         to: dashboardPath,
         label: `${user.role} Dashboard`,
         icon: IoHomeOutline,
       });
 
-      if (user.role === "Intern") {
-        commonLinks.push({
+      if (role === "intern") {
+        links.push({
           to: "/intern/applications",
           label: "My Applications",
           icon: IoSearchOutline,
         });
       }
     } else {
-      commonLinks.push(
+      links.push(
         { to: "/login", label: "Sign In", icon: IoArrowBackOutline },
         { to: "/register", label: "Register", icon: IoSearchOutline }
       );
     }
 
-    return commonLinks;
+    return links;
   };
 
   const handleReportError = () => {
     const subject = `404 Error Report - ${window.location.href}`;
     const body = `I encountered a 404 error on the following page:\n\nURL: ${window.location.href}\nTimestamp: ${new Date().toISOString()}\nUser Agent: ${navigator.userAgent}\n\nAdditional details:\n`;
     window.open(
-      `mailto:support@aninex.com?subject=${encodeURIComponent(
-        subject
-      )}&body=${encodeURIComponent(body)}`
+      `mailto:support@aninex.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center">
-        {/* 404 animation */}
+        {/* 404 */}
         <div className="relative mb-8">
-          <div className="text-9xl sm:text-[12rem] font-black text-gray-200 select-none animate-pulse">
+          <div className="text-9xl font-black text-gray-200 select-none animate-pulse">
             404
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-32 h-32 sm:w-48 sm:h-48 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full animate-bounce flex items-center justify-center shadow-2xl">
-              <div className="text-4xl sm:text-6xl">🚀</div>
-            </div>
           </div>
         </div>
 
-        {/* Main */}
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
-              Oops! Page Not Found
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-600 max-w-lg mx-auto">
-              It seems like you've ventured into uncharted territory. The page
-              you're looking for doesn't exist.
-            </p>
-          </div>
+        <h1 className="text-4xl font-bold text-gray-900 mb-3">
+          Oops! Page Not Found
+        </h1>
+        <p className="text-lg text-gray-600 mb-6">
+          It seems like you've ventured into uncharted territory. The page
+          you're looking for doesn't exist.
+        </p>
 
-          {/* Details */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Requested URL:</span>{" "}
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                  {location.pathname}
-                </code>
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Error Code:</span> 404 - Not Found
-              </p>
-            </div>
-          </div>
+        {/* Details */}
+        <div className="bg-white rounded-xl p-4 mb-6 shadow">
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">Requested URL:</span>{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+              {location.pathname}
+            </code>
+          </p>
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">Error Code:</span> 404 - Not Found
+          </p>
+        </div>
 
-          {/* Auto redirect notice */}
-          {autoRedirect && countdown > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mx-auto max-w-md">
-              <div className="flex items-center justify-center space-x-2 text-blue-700">
-                <IoRefreshOutline className="w-5 h-5 animate-spin" />
-                <span className="text-sm font-medium">
-                  Redirecting in {countdown} seconds...
-                </span>
-              </div>
-              <button
-                onClick={cancelAutoRedirect}
-                className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
+        {/* Auto redirect notice */}
+        {autoRedirect && countdown > 0 && (
+          <div className="bg-blue-50 p-4 rounded mb-4">
+            <IoRefreshOutline className="inline-block mr-2 animate-spin" />
+            Redirecting in {countdown} seconds...
+            <button
+              onClick={cancelAutoRedirect}
+              className="ml-2 text-xs text-blue-600 underline"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+          <button
+            onClick={handleGoBack}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded shadow hover:from-blue-700 hover:to-purple-700"
+          >
+            <IoArrowBackOutline className="inline-block mr-2" />
+            Go Back
+          </button>
+
+          <Link
+            to="/"
+            className="px-4 py-2 bg-white border border-blue-200 rounded text-blue-600 hover:bg-blue-50"
+          >
+            <IoHomeOutline className="inline-block mr-2" />
+            Go Home
+          </Link>
+        </div>
+
+        {/* Recommended links */}
+        <div className="bg-white rounded-xl p-4 shadow mb-6">
+          <h3 className="font-semibold text-gray-900 mb-3">
+            Popular Destinations
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {getRecommendedLinks().map((link, idx) => (
+              <Link
+                key={idx}
+                to={link.to}
+                className="flex items-center p-2 bg-gray-50 rounded hover:bg-gray-100"
               >
-                Cancel auto-redirect
-              </button>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button
-              onClick={handleGoBack}
-              className="group inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              <IoArrowBackOutline className="mr-2 group-hover:-translate-x-1 transition-transform" />
-              Go Back
-            </button>
-
-            <Link
-              to="/"
-              className="inline-flex items-center px-6 py-3 text-sm font-medium text-blue-600 bg-white rounded-xl border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              <IoHomeOutline className="mr-2" />
-              Go Home
-            </Link>
+                <link.icon className="mr-2" />
+                {link.label}
+              </Link>
+            ))}
           </div>
+        </div>
 
-          {/* Recommended links */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Popular Destinations
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {getRecommendedLinks().map((link, index) => (
-                <Link
-                  key={index}
-                  to={link.to}
-                  className="flex items-center p-3 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 hover:text-blue-600 transition-all duration-200 group"
-                >
-                  <link.icon className="w-4 h-4 mr-3 group-hover:scale-110 transition-transform" />
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
+        {/* Help section */}
+        <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+          <button
+            onClick={handleReportError}
+            className="flex items-center gap-1 hover:text-blue-600"
+          >
+            <IoBugOutline /> Report this error
+          </button>
+          <Link
+            to="/contact"
+            className="flex items-center gap-1 hover:text-blue-600"
+          >
+            <IoHelpCircleOutline /> Get help
+          </Link>
+          <a
+            href="mailto:support@aninex.com"
+            className="flex items-center gap-1 hover:text-blue-600"
+          >
+            <IoMailOutline /> Contact support
+          </a>
+        </div>
 
-          {/* Search suggestion */}
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
-            <div className="flex items-center justify-center space-x-2 mb-3">
-              <IoSearchOutline className="w-5 h-5 text-green-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
-                Looking for something specific?
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Try searching for internships or browse our available
-              opportunities.
-            </p>
-            <Link
-              to="/internships"
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-green-700 bg-white rounded-lg border border-green-200 hover:bg-green-50 transition-colors"
-            >
-              <IoSearchOutline className="mr-2 w-4 h-4" />
-              Browse Internships
-            </Link>
-          </div>
-
-          {/* Help section */}
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-gray-600">
-            <button
-              onClick={handleReportError}
-              className="flex items-center space-x-2 hover:text-blue-600 transition-colors"
-            >
-              <IoBugOutline className="w-4 h-4" />
-              <span>Report this error</span>
-            </button>
-
-            <Link
-              to="/contact"
-              className="flex items-center space-x-2 hover:text-blue-600 transition-colors"
-            >
-              <IoHelpCircleOutline className="w-4 h-4" />
-              <span>Get help</span>
-            </Link>
-
-            <a
-              href="mailto:support@aninex.com"
-              className="flex items-center space-x-2 hover:text-blue-600 transition-colors"
-            >
-              <IoMailOutline className="w-4 h-4" />
-              <span>Contact support</span>
-            </a>
-          </div>
-
-          {/* Fun message */}
-          <div className="text-xs text-gray-500 italic">
-            "Not all who wander are lost... but this page definitely is! 🗺️"
-          </div>
+        <div className="text-xs text-gray-500 italic mt-6">
+          "Not all who wander are lost... but this page definitely is!"
         </div>
       </div>
     </div>

@@ -24,55 +24,58 @@ const ConfirmationModal = ({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape" && !loading) {
+      onClose();
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
       onClick={handleBackdropClick}
+      onKeyDown={handleKeyDown}
+      role="dialog"
+      aria-modal="true"
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <div className="flex items-center space-x-4 mb-6">
-          <div
-            className={`w-12 h-12 rounded-full flex items-center justify-center ${
-              danger ? "bg-red-100" : "bg-blue-100"
-            }`}
-          >
-            {danger ? (
-              <IoWarningOutline className="w-6 h-6 text-red-600" />
-            ) : (
-              <IoCheckmarkCircleOutline className="w-6 h-6 text-blue-600" />
-            )}
-          </div>
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+        <button
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+          onClick={onClose}
+          disabled={loading}
+        >
+          <IoCloseOutline size={20} />
+        </button>
 
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <div className="text-sm text-gray-600 mt-1">
-              {typeof message === "string" ? <p>{message}</p> : message}
-            </div>
-          </div>
+        <div className="flex items-center space-x-3 mb-4">
+          {danger ? (
+            <IoWarningOutline className="text-red-500 text-2xl" />
+          ) : (
+            <IoCheckmarkCircleOutline className="text-green-500 text-2xl" />
+          )}
+          <h2 className="text-lg font-semibold">{title}</h2>
         </div>
+
+        <p className="text-gray-600 mb-6">{message}</p>
 
         <div className="flex justify-end space-x-3">
           <button
             onClick={onClose}
+            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
           >
             {cancelText}
           </button>
-
           <button
             onClick={onConfirm}
-            disabled={loading}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-md disabled:opacity-50 flex items-center ${
+            className={`px-4 py-2 rounded-md text-white ${
               danger
                 ? "bg-red-600 hover:bg-red-700"
                 : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            } disabled:opacity-50`}
+            disabled={loading}
           >
-            {loading && (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-            )}
-            {confirmText}
+            {loading ? "Processing..." : confirmText}
           </button>
         </div>
       </div>
