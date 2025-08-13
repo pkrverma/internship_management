@@ -1,3 +1,4 @@
+// src/app.js
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -10,10 +11,17 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
+// Trust first proxy (important for Vercel so rate-limit and IP detection work correctly)
+app.set("trust proxy", 1);
+
 // Security headers
 app.use(helmet());
 
-// Parse comma-separated CORS origins from env
+/**
+ * Utility: parse comma-separated CORS origins from env variable
+ * @param {string} envValue - raw env var string
+ * @returns {string[]} - list of allowed origins
+ */
 function parseOrigins(envValue) {
   if (!envValue) return [];
   return envValue
@@ -22,41 +30,42 @@ function parseOrigins(envValue) {
     .filter(Boolean);
 }
 
-// CORS: allow specific frontend origins
+// Read and parse allowed origins from environment
 const allowedOrigins = parseOrigins(process.env.CORS_ORIGINS);
 
-// Log allowed origins for debugging (optional)
+// Debug log for allowed origins
 console.log("🌐 Allowed CORS origins:", allowedOrigins);
 
+// CORS middleware
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (mobile apps, curl, Postman) or whitelisted origins
+      // Allow requests with no origin (e.g. Postman, curl, mobile)
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       console.log("❌ CORS blocked origin:", origin);
       return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true, // Allow cookies and auth headers
+    credentials: true, // Allow cookies and Authorization headers
   })
 );
 
-// Body parser
+// Body parser for JSON
 app.use(express.json());
 
-// Rate limiter
+// Rate limiter (15 minutes, max 100 requests per IP)
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     max: 100,
   })
 );
 
-// Connect Database
+// Connect to MongoDB
 connectDB();
 
-// Mount routes
+// Mount API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/internships", internshipRoutes);
 
