@@ -15,9 +15,8 @@ const MentorLayout = () => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    if (user && user.role === "Mentor") {
-      // Initialize real-time notifications for mentor
-      initializeRealTimeNotifications(
+    if (user && user.role?.toLowerCase() === "mentor") {
+      const stop = initializeRealTimeNotifications(
         (notification) => {
           console.log("New mentor notification:", notification);
           setNotifications((prev) => [notification, ...prev]);
@@ -26,62 +25,36 @@ const MentorLayout = () => {
           console.error("Notification connection error:", error);
         }
       );
+      return () => stop && stop();
     }
-
-    return () => {
-      closeRealTimeNotifications();
-    };
+    return () => closeRealTimeNotifications();
   }, [user]);
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-100">
-        <LoadingSpinner />
-      </div>
-    );
+    return <LoadingSpinner text="Loading mentor dashboard..." />;
   }
 
-  if (!user || user.role !== "Mentor") {
+  if (!user || user.role?.toLowerCase() !== "mentor") {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700">Access Denied</h2>
-          <p className="text-gray-500">You don't have mentor access.</p>
-        </div>
-      </div>
+      <div className="p-6 text-red-600">You don't have mentor access.</div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-gray-100">
       <Sidebar
-        role="Mentor"
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        role="mentor"
+        open={sidebarOpen}
+        onToggle={setSidebarOpen}
+        notifications={notifications}
       />
-
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main content */}
-      <div className="flex flex-col flex-1 lg:ml-64">
-        {/* Top Navigation */}
+      <div className="flex flex-col flex-1">
         <Navbar
           onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-          showSidebarToggle={true}
+          showSidebarToggle
         />
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6">
-          <div className="mx-auto max-w-7xl">
-            <Outlet />
-          </div>
+        <main className="flex-1 p-4 overflow-y-auto">
+          <Outlet />
         </main>
       </div>
     </div>

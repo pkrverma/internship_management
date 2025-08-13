@@ -5,55 +5,23 @@ import {
   updateDataById,
   deleteDataById,
   searchData,
-  getPaginatedData,
+  getMyData,
 } from "./dataService";
 
 /**
- * GET ALL INTERNSHIPS
- * @param {Object} filters - Optional filters (status, type, location, etc.)
- * @returns {Promise<Array>} - Array of internships
- */
-export const getAllInternships = async (filters = {}) => {
-  try {
-    console.log("Fetching all internships...");
-    return await getData("internships", filters);
-  } catch (error) {
-    console.error("Failed to fetch internships:", error);
-    throw new Error("Unable to load internships. Please try again.");
-  }
-};
-
-/**
- * GET INTERNSHIP BY ID
- * @param {string|number} id - Internship ID
- * @returns {Promise<Object>} - Single internship
- */
-export const getInternshipById = async (id) => {
-  try {
-    console.log(`Fetching internship with ID: ${id}`);
-    return await getDataById("internships", id);
-  } catch (error) {
-    console.error("Failed to fetch internship:", error);
-    throw new Error("Unable to load internship details.");
-  }
-};
-
-/**
- * CREATE NEW INTERNSHIP (Admin only)
- * @param {Object} internshipData - Internship details
- * @returns {Promise<Object>} - Created internship
+ * CREATE INTERNSHIP
  */
 export const createInternship = async (internshipData) => {
   try {
-    console.log("Creating new internship...");
+    console.log("Creating internship...");
 
     // Validate required fields
     const requiredFields = [
       "title",
+      "company",
+      "location",
       "description",
-      "department",
-      "startDate",
-      "endDate",
+      "duration",
     ];
     for (const field of requiredFields) {
       if (!internshipData[field]) {
@@ -61,161 +29,172 @@ export const createInternship = async (internshipData) => {
       }
     }
 
-    const internshipPayload = {
+    const payload = {
       ...internshipData,
-      status: "Open",
+      status: internshipData.status || "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    return await saveData("internships", internshipPayload, "POST");
+    return await saveData("internships", payload, "POST");
   } catch (error) {
     console.error("Failed to create internship:", error);
-    throw new Error(error.message || "Unable to create internship.");
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to create internship."
+    );
   }
 };
 
 /**
- * UPDATE INTERNSHIP (Admin only)
- * @param {string|number} id - Internship ID
- * @param {Object} updates - Updated fields
- * @returns {Promise<Object>} - Updated internship
+ * UPDATE INTERNSHIP
  */
 export const updateInternship = async (id, updates) => {
   try {
-    console.log(`Updating internship with ID: ${id}`);
-
-    const updatePayload = {
+    console.log(`Updating internship ID: ${id}`);
+    return await updateDataById("internships", id, {
       ...updates,
       updatedAt: new Date().toISOString(),
-    };
-
-    return await updateDataById("internships", id, updatePayload);
+    });
   } catch (error) {
     console.error("Failed to update internship:", error);
-    throw new Error("Unable to update internship.");
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to update internship."
+    );
   }
 };
 
 /**
- * DELETE INTERNSHIP (Admin only)
- * @param {string|number} id - Internship ID
- * @returns {Promise<boolean>} - Success status
+ * DELETE INTERNSHIP
  */
 export const deleteInternship = async (id) => {
   try {
-    console.log(`Deleting internship with ID: ${id}`);
+    console.log(`Deleting internship ID: ${id}`);
     return await deleteDataById("internships", id);
   } catch (error) {
     console.error("Failed to delete internship:", error);
-    throw new Error("Unable to delete internship.");
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to delete internship."
+    );
+  }
+};
+
+/**
+ * GET INTERNSHIP BY ID
+ */
+export const getInternshipById = async (id) => {
+  try {
+    console.log(`Fetching internship ID: ${id}`);
+    return await getDataById("internships", id);
+  } catch (error) {
+    console.error("Failed to fetch internship:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to fetch internship."
+    );
+  }
+};
+
+/**
+ * GET ALL INTERNSHIPS
+ */
+export const getAllInternships = async (filters = {}) => {
+  try {
+    console.log("Fetching internships...");
+    return await getData("internships", filters);
+  } catch (error) {
+    console.error("Failed to fetch internships:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to fetch internships."
+    );
   }
 };
 
 /**
  * SEARCH INTERNSHIPS
- * @param {string} query - Search query
- * @param {Object} filters - Additional filters
- * @returns {Promise<Array>} - Filtered internships
  */
-export const searchInternships = async (query, filters = {}) => {
+export const searchInternships = async (filters = {}) => {
   try {
-    console.log(`Searching internships with query: ${query}`);
-
-    const searchParams = {
-      q: query,
-      ...filters,
-    };
-
-    return await searchData("internships", searchParams);
+    console.log("Searching internships...");
+    return await searchData("internships", filters);
   } catch (error) {
     console.error("Failed to search internships:", error);
-    throw new Error("Unable to search internships.");
-  }
-};
-
-/**
- * GET PAGINATED INTERNSHIPS
- * @param {number} page - Page number
- * @param {number} limit - Items per page
- * @param {Object} filters - Filters
- * @returns {Promise<Object>} - Paginated results
- */
-export const getPaginatedInternships = async (
-  page = 1,
-  limit = 10,
-  filters = {}
-) => {
-  try {
-    console.log(
-      `Fetching paginated internships - page: ${page}, limit: ${limit}`
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to search internships."
     );
-    return await getPaginatedData("internships", page, limit, filters);
-  } catch (error) {
-    console.error("Failed to fetch paginated internships:", error);
-    throw new Error("Unable to load internships.");
   }
 };
 
 /**
- * GET INTERNSHIPS BY STATUS
- * @param {string} status - Internship status (Open, Closed, Draft)
- * @returns {Promise<Array>} - Filtered internships
+ * GET MY POSTED INTERNSHIPS (for mentors/admin)
  */
-export const getInternshipsByStatus = async (status) => {
+export const getMyPostedInternships = async (userId) => {
   try {
-    console.log(`Fetching internships with status: ${status}`);
-    return await getData("internships", { status });
+    console.log(`Fetching internships posted by user: ${userId}`);
+    return await getMyData("internships", userId);
   } catch (error) {
-    console.error("Failed to fetch internships by status:", error);
-    throw new Error("Unable to load internships.");
+    console.error("Failed to fetch my posted internships:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to load posted internships."
+    );
   }
 };
 
 /**
- * GET AVAILABLE INTERNSHIPS (for interns)
- * Only returns open internships that accept applications
- * @returns {Promise<Array>} - Available internships
+ * UPDATE INTERNSHIP STATUS (active/closed)
  */
-export const getAvailableInternships = async () => {
+export const updateInternshipStatus = async (id, status) => {
   try {
-    console.log("Fetching available internships for application...");
-    return await getData("internships", {
-      status: "Open",
-      acceptingApplications: true,
+    console.log(`Updating internship ${id} status to ${status}`);
+    return await updateDataById("internships", id, {
+      status,
+      updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Failed to fetch available internships:", error);
-    throw new Error("Unable to load available internships.");
+    console.error("Failed to update internship status:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to update status."
+    );
   }
 };
 
 /**
- * TOGGLE INTERNSHIP STATUS
- * @param {string|number} id - Internship ID
- * @param {string} status - New status
- * @returns {Promise<Object>} - Updated internship
- */
-export const toggleInternshipStatus = async (id, status) => {
-  try {
-    console.log(`Toggling internship ${id} status to: ${status}`);
-    return await updateInternship(id, { status });
-  } catch (error) {
-    console.error("Failed to toggle internship status:", error);
-    throw new Error("Unable to update internship status.");
-  }
-};
-
-/**
- * GET INTERNSHIP STATISTICS (Admin)
- * @returns {Promise<Object>} - Internship stats
+ * GET INTERNSHIP STATS
  */
 export const getInternshipStats = async () => {
   try {
-    console.log("Fetching internship statistics...");
+    console.log("Fetching internship stats...");
     return await getData("internshipStats");
   } catch (error) {
     console.error("Failed to fetch internship stats:", error);
-    throw new Error("Unable to load statistics.");
+    throw new Error(
+      error.response?.data?.message || error.message || "Unable to fetch stats."
+    );
   }
+};
+
+export default {
+  createInternship,
+  updateInternship,
+  deleteInternship,
+  getInternshipById,
+  getAllInternships,
+  searchInternships,
+  getMyPostedInternships,
+  updateInternshipStatus,
+  getInternshipStats,
 };

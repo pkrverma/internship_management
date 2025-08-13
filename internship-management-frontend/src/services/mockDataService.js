@@ -1,123 +1,98 @@
-import allUsers from "../mock/user.json";
-import allTasks from "../mock/tasks.json";
-import allMeetings from "../mock/meetings.json";
-import allConversations from "../mock/conversations.json";
-import allApplications from "../mock/applications.json";
-import allSharedDocuments from "../mock/sharedDocuments.json";
-import mentorAssignments from "../mock/mentorAssignments.json"; //
+/**
+ * Simple in-memory mock data provider
+ * Useful for development/testing without a backend
+ */
 
-// Simulate API call delay
-const fetchWithDelay = (data, delay = 500) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, delay);
-  });
+// ======= MOCK DATA =======
+const mockInternships = [
+  {
+    id: "1",
+    title: "Frontend Developer Intern",
+    company: "TechCorp",
+    location: "Remote",
+    description: "Work on React and modern frontend tools",
+    duration: "3 months",
+    stipend: 5000,
+    postedBy: { name: "Alice", email: "alice@example.com" },
+  },
+  {
+    id: "2",
+    title: "Backend Developer Intern",
+    company: "CodeWorks",
+    location: "On-site",
+    description: "Node.js API development & database integration",
+    duration: "4 months",
+    stipend: 7000,
+    postedBy: { name: "Bob", email: "bob@example.com" },
+  },
+];
+
+const mockApplications = [
+  {
+    id: "app1",
+    internshipId: "1",
+    userId: "u1",
+    status: "Pending",
+    submittedAt: "2025-08-12T10:00:00Z",
+  },
+];
+
+const mockNotifications = [
+  {
+    id: "n1",
+    userId: "u1",
+    message: "Your application status has been updated",
+    isRead: false,
+    createdAt: "2025-08-13T15:20:00Z",
+  },
+];
+
+// ======= API-LIKE FUNCTIONS =======
+export const getMockInternships = () => {
+  return Promise.resolve(mockInternships);
 };
 
-//
-// ======================== INTERN FUNCTIONS ============================
-//
-
-/** Get applications for a given intern ID */
-export const getApplicationsByInternId = (internId) => {
-  const applications = allApplications.filter(
-    (app) => app.internId === internId
-  );
-  return fetchWithDelay(applications);
+export const getMockInternshipById = (id) => {
+  const internship = mockInternships.find((m) => m.id === id);
+  return Promise.resolve(internship || null);
 };
 
-/** Get tasks assigned to a given intern ID */
-export const getTasksByInternId = (internId) => {
-  const tasks = allTasks.filter((task) => task.internId === internId);
-  return fetchWithDelay(tasks);
+export const addMockInternship = (internship) => {
+  const newItem = { ...internship, id: Date.now().toString() };
+  mockInternships.push(newItem);
+  return Promise.resolve(newItem);
 };
 
-/** Get meetings scheduled for a given intern ID */
-export const getMeetingsByInternId = (internId) => {
-  const meetings = allMeetings.filter(
-    (meeting) => meeting.internId === internId
-  );
-  return fetchWithDelay(meetings);
+export const getMockApplications = () => {
+  return Promise.resolve(mockApplications);
 };
 
-// Get shared documents to a given intern ID / uploaded by mentor ID
-export const getSharedDocuments = ({ internId, mentorId }) => {
-  const allDocs = allSharedDocuments;
-  let filteredDocs = [];
-  if (internId) {
-    filteredDocs = allDocs.filter((doc) => doc.internId === internId);
-  } else if (mentorId) {
-    filteredDocs = allDocs.filter((doc) => doc.uploadedBy === mentorId);
-  }
-  return fetchWithDelay(filteredDocs);
+export const getMockNotifications = () => {
+  return Promise.resolve(mockNotifications);
 };
 
-//
-// ======================== MENTOR FUNCTIONS ============================
-//
-
-/** Get interns assigned to a mentor */
-export const getInternsByMentorId = (mentorId) => {
-  const assignedInternIds = mentorAssignments[mentorId] || [];
-  if (assignedInternIds.length === 0) return fetchWithDelay([]);
-
-  const assignedInterns = allUsers.filter(
-    (user) => user.role === "Intern" && assignedInternIds.includes(user.id)
-  );
-
-  return fetchWithDelay(assignedInterns);
+export const getUnreadNotificationsCount = () => {
+  const count = mockNotifications.filter((n) => !n.isRead).length;
+  return Promise.resolve({ unread: count });
 };
 
-/** Get tasks submitted by interns assigned to a mentor */
-export const getTasksForMentorReview = (mentorId) => {
-  const tasksForMentor = allTasks.filter((task) => task.mentorId === mentorId);
-
-  const tasksWithInternInfo = tasksForMentor.map((task) => {
-    const intern = allUsers.find((user) => user.id === task.internId);
-    return {
-      ...task,
-      internName: intern ? intern.name : "Unknown Intern",
-    };
-  });
-
-  return fetchWithDelay(tasksWithInternInfo);
+// Example of adding shared documents
+export const getSharedDocuments = () => {
+  return Promise.resolve([
+    {
+      id: "doc1",
+      name: "Internship Guidelines.pdf",
+      addedOn: "2025-08-10T09:00:00Z",
+    },
+  ]);
 };
 
-/** Get meetings scheduled with interns under a mentor */
-export const getMeetingsByMentorId = (mentorId) => {
-  const meetingsForMentor = allMeetings.filter(
-    (meeting) => meeting.mentorId === mentorId
-  );
-
-  const meetingsWithInternInfo = meetingsForMentor.map((meeting) => {
-    const intern = allUsers.find((user) => user.id === meeting.internId);
-    return {
-      ...meeting,
-      internName: intern ? intern.name : "Unknown Intern",
-    };
-  });
-
-  return fetchWithDelay(meetingsWithInternInfo);
+export default {
+  getMockInternships,
+  getMockInternshipById,
+  addMockInternship,
+  getMockApplications,
+  getMockNotifications,
+  getUnreadNotificationsCount,
+  getSharedDocuments,
 };
-
-/** Get chat conversations of interns under a mentor */
-export const getConversationsForMentor = (mentorId) => {
-  const assignedInternIds = mentorAssignments[mentorId] || [];
-  const conversations = {};
-
-  assignedInternIds.forEach((internId) => {
-    conversations[internId] = allConversations[internId] || [];
-  });
-
-  return fetchWithDelay(conversations);
-};
-
-//
-// ======================== OPTIONAL EXTENSIONS ============================
-//
-
-// Add later if needed:
-// export const getApplicationById = (id) => { ... }
-// export const submitApplication = (data) => { ... }
-// export const getAllInternships = () => { ... }
