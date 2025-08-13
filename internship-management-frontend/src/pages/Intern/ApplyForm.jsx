@@ -285,7 +285,7 @@ const ApplyForm = () => {
     }, 30000);
 
     return () => clearInterval(saveInterval);
-  }, [formData, hasUnsavedChanges]);
+  }, [formData, hasUnsavedChanges, saveDraft]);
 
   // Clear messages after 5 seconds
   useEffect(() => {
@@ -1699,7 +1699,7 @@ const ApplyForm = () => {
               type="url"
               value={formData.website}
               onChange={(e) => handleInputChange("website", e.target.value)}
-              placeholder="https://your-portfolio.com"
+              placeholder="https://pulkitkrverma.tech"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>

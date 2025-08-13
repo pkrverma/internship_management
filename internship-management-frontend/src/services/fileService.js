@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Base API URL for file operations
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  VITE_API_URL || VITE_API_BASE_URL;
 
 // Create axios instance for file operations
 const fileApi = axios.create({

@@ -187,7 +187,7 @@ const InternshipApplication = () => {
     if (user?.id && internshipId) {
       loadData();
     }
-  }, [internshipId, user, navigate]);
+  }, [internshipId, user, navigate, loadDraft, populateFormFromApplication]);
 
   // Auto-save draft every 30 seconds
   useEffect(() => {
@@ -202,7 +202,7 @@ const InternshipApplication = () => {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [formData]);
+  }, [formData, saveDraft]);
 
   // Clear messages after 5 seconds
   useEffect(() => {
@@ -214,6 +214,7 @@ const InternshipApplication = () => {
     }
   }, [message]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const populateFormFromApplication = (application) => {
     setFormData({
       firstName: application.firstName || "",
@@ -304,6 +305,7 @@ const InternshipApplication = () => {
     [formData, files, currentStep, internshipId]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadDraft = () => {
     try {
       const draftData = localStorage.getItem(
@@ -1123,7 +1125,7 @@ const InternshipApplication = () => {
           name="portfolio"
           value={formData.portfolio}
           onChange={handleInputChange}
-          placeholder="https://yourportfolio.com"
+          placeholder="https://pulkitkrverma.tech"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
