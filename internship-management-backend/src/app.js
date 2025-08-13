@@ -13,7 +13,6 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS whitelist
 // Parse comma-separated CORS origins from env
 function parseOrigins(envValue) {
   if (!envValue) return [];
@@ -23,9 +22,12 @@ function parseOrigins(envValue) {
     .filter(Boolean);
 }
 
+// CORS: allow specific frontend origins
 const allowedOrigins = parseOrigins(process.env.CORS_ORIGINS);
 
-// Example: CORS_ORIGINS="http://localhost:3000, http://127.0.0.1:3000, https://your-frontend.vercel.app"
+// Log allowed origins for debugging (optional)
+console.log("🌐 Allowed CORS origins:", allowedOrigins);
+
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -33,27 +35,37 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+      console.log("❌ CORS blocked origin:", origin);
       return callback(new Error("Not allowed by CORS"));
     },
+    credentials: true, // Allow cookies and auth headers
   })
 );
 
-// Parsers and rate limit
+// Body parser
 app.use(express.json());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
-// DB
+// Rate limiter
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+  })
+);
+
+// Connect Database
 connectDB();
 
-// Routes
+// Mount routes
 app.use("/api/auth", authRoutes);
 app.use("/api/internships", internshipRoutes);
 
+// Root route
 app.get("/", (req, res) => {
   res.send("Internship Management API is running 🚀");
 });
 
-// Global error handler
+// Global error handler (must be last)
 app.use(errorHandler);
 
 module.exports = app;
