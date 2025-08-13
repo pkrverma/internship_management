@@ -11,16 +11,14 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-// Trust first proxy (important for Vercel so rate-limit and IP detection work correctly)
+// ✅ Trust first proxy (important for Vercel + rate limiter to work correctly)
 app.set("trust proxy", 1);
 
-// Security headers
+// ✅ Security headers
 app.use(helmet());
 
 /**
  * Utility: parse comma-separated CORS origins from env variable
- * @param {string} envValue - raw env var string
- * @returns {string[]} - list of allowed origins
  */
 function parseOrigins(envValue) {
   if (!envValue) return [];
@@ -30,51 +28,53 @@ function parseOrigins(envValue) {
     .filter(Boolean);
 }
 
-// Read and parse allowed origins from environment
-const allowedOrigins = parseOrigins(process.env.CORS_ORIGINS);
-
-// Debug log for allowed origins
+// ✅ Read allowed origins from ENV and log them
+const allowedOrigins = parseOrigins(process.env.CORS_ORIGINS || "");
 console.log("🌐 Allowed CORS origins:", allowedOrigins);
 
-// CORS middleware
+// ✅ CORS middleware
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (e.g. Postman, curl, mobile)
+      // Allow requests with no origin (Postman, curl, mobile)
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       console.log("❌ CORS blocked origin:", origin);
       return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true, // Allow cookies and Authorization headers
+    credentials: true, // Allow cookies & Authorization headers
+    optionsSuccessStatus: 200, // For legacy browsers handling OPTIONS
   })
 );
 
-// Body parser for JSON
+// ✅ Pre-flight request handler for all routes
+app.options("*", cors());
+
+// ✅ Body parser for JSON
 app.use(express.json());
 
-// Rate limiter (15 minutes, max 100 requests per IP)
+// ✅ Rate limiter (after trust proxy is set)
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100,
   })
 );
 
-// Connect to MongoDB
+// ✅ Connect to MongoDB
 connectDB();
 
-// Mount API routes
+// ✅ Mount API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/internships", internshipRoutes);
 
-// Root route
+// ✅ Root health check
 app.get("/", (req, res) => {
   res.send("Internship Management API is running 🚀");
 });
 
-// Global error handler (must be last)
+// ✅ Global error handler (last middleware)
 app.use(errorHandler);
 
 module.exports = app;
