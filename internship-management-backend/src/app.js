@@ -77,4 +77,14 @@ app.get("/", (req, res) => {
 // ✅ Global error handler (last middleware)
 app.use(errorHandler);
 
+// =======================
+// Catch-all 404 for unmatched routes (Express 5 safe)
+// =======================
+app.all("/*", (req, res, next) => {
+  res.status(404).json({ error: "Not Found" });
+});
+
+// Global error handler (last)
+app.use(errorHandler);
+
 module.exports = app;

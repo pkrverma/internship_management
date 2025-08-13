@@ -1,3 +1,4 @@
+// routes/internshipRoutes.js
 const express = require("express");
 const {
   createInternship,
@@ -6,21 +7,25 @@ const {
   updateInternship,
   deleteInternship,
 } = require("../controllers/internshipController");
+
 const authMiddleware = require("../middleware/authMiddleware");
 const { body } = require("express-validator");
 const upload = require("../middleware/uploadMiddleware");
-const router = express.Router();
 const sendEmail = require("../config/email");
 const ErrorResponse = require("../utils/ErrorResponse");
 const Internship = require("../models/Internship");
 
-// POST Internship with validations
+const router = express.Router();
+
+// =======================
+// Create Internship
+// =======================
 router.post(
   "/",
   authMiddleware,
   [
-    body("title").notEmpty().withMessage("Title is required"),
-    body("company").notEmpty().withMessage("Company is required"),
+    body("title").trim().notEmpty().withMessage("Title is required"),
+    body("company").trim().notEmpty().withMessage("Company is required"),
     body("description")
       .isLength({ min: 10 })
       .withMessage("Description must be at least 10 characters long"),
@@ -28,10 +33,19 @@ router.post(
   createInternship
 );
 
+// =======================
+// Get All (with optional filters)
+// =======================
 router.get("/", getAllInternships);
 
+// =======================
+// Get by ID
+// =======================
 router.get("/:id", getInternshipById);
 
+// =======================
+// Update Internship
+// =======================
 router.put(
   "/:id",
   authMiddleware,
@@ -45,7 +59,9 @@ router.put(
   updateInternship
 );
 
-// POST: Apply to internship with resume
+// =======================
+// Apply with Resume Upload
+// =======================
 router.post(
   "/:id/apply",
   authMiddleware,
@@ -56,6 +72,7 @@ router.post(
         "postedBy",
         "email name"
       );
+
       if (!internship) {
         return next(new ErrorResponse("Internship not found", 404));
       }
@@ -69,10 +86,14 @@ router.post(
         );
       }
 
-      const resumePath =
-        process.env.NODE_ENV === "production"
-          ? uploadedUrl // e.g. S3 URL you get after uploading the buffer
-          : req.file.path;
+      // Safely determine resume path
+      let resumePath;
+      if (process.env.NODE_ENV === "production") {
+        // In production: avoid FS writes outside /tmp; integrate cloud storage here
+        resumePath = `[buffer uploaded: ${req.file.originalname}]`;
+      } else {
+        resumePath = req.file.path;
+      }
 
       const message = `
         New application received:
@@ -81,22 +102,33 @@ router.post(
         - Resume: ${resumePath}
       `;
 
-      await sendEmail({
-        email: internship.postedBy.email,
-        subject: `New Internship Application - ${internship.title}`,
-        message,
-      });
+      try {
+        await sendEmail({
+          email: internship.postedBy.email,
+          subject: `New Internship Application - ${internship.title}`,
+          message,
+        });
+      } catch (emailError) {
+        console.error("Email sending failed:", emailError);
+        return next(
+          new ErrorResponse("Application submitted but email failed", 500)
+        );
+      }
 
       return res.json({
         success: true,
         message: "Application submitted and email sent to recruiter",
       });
     } catch (err) {
+      console.error("Apply route error:", err);
       return next(err);
     }
   }
 );
 
+// =======================
+// Delete Internship
+// =======================
 router.delete("/:id", authMiddleware, deleteInternship);
 
 module.exports = router;

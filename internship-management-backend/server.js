@@ -1,14 +1,17 @@
-// Load environment variables from .env first
+// Load environment variables first
 const dotenv = require("dotenv");
 dotenv.config();
 
 // Import the express app
 const app = require("./src/app");
 
-// Define port (from env or fallback to 5000)
-const PORT = process.env.PORT || 5000;
+// For Vercel: export the app (no listen)
+module.exports = app;
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// For local development: start server if run directly
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running locally at http://localhost:${PORT}`);
+  });
+}

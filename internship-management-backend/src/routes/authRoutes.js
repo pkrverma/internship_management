@@ -1,14 +1,17 @@
+// routes/authRoutes.js
 const express = require("express");
 const { register, login } = require("../controllers/authController");
 const { body } = require("express-validator");
 
 const router = express.Router();
 
-// Register route with validation
+// =======================
+// Auth: Register
+// =======================
 router.post(
   "/register",
   [
-    body("name").notEmpty().withMessage("Name is required"),
+    body("name").trim().notEmpty().withMessage("Name is required"),
     body("email").isEmail().withMessage("Valid email is required"),
     body("password")
       .isLength({ min: 6 })
@@ -17,7 +20,9 @@ router.post(
   register
 );
 
-// Login route with validation
+// =======================
+// Auth: Login
+// =======================
 router.post(
   "/login",
   [
