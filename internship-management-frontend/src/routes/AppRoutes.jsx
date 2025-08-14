@@ -58,6 +58,7 @@ const AppRoutes = () => {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/internships" element={<InternshipsPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
         </Route>
 
         {/* Notifications */}
@@ -66,7 +67,6 @@ const AppRoutes = () => {
         {/* Admin Section */}
         <Route element={<AdminRoute />}>
           <Route element={<AdminLayout />}>
-            <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             {/* Add other admin routes here */}
           </Route>

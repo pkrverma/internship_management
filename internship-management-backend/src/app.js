@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 
+const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const authRoutes = require("./routes/authRoutes");
 const internshipRoutes = require("./routes/internshipRoutes");
 const errorHandler = require("./middleware/errorHandler");
@@ -64,6 +65,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/internships", internshipRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/admin/auth", adminAuthRoutes);
+
 
 // Health check
 app.get("/", (req, res) => {

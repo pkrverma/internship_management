@@ -64,7 +64,7 @@ const LoginPage = () => {
 
       if (loggedInUser.role?.toLowerCase() === "admin") {
         setSubmitError("Admin users should use the admin login page.");
-        return;
+        return; // Stop here so admin can't log in from here
       }
 
       console.log("Login successful:", loggedInUser.role);

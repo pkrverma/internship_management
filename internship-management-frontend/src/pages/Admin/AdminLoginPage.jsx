@@ -1,28 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Spinner from "../../components/ui/Spinner";
 import AninexLogo from "../../assets/images/aninex-logo.jpeg";
-import { ShieldCheckIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { loginAdmin } from "../../services/authService";
 
 const AdminLoginPage = () => {
-  const { login, isAuthenticated, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Form state
   const [formData, setFormData] = useState({ email: "", password: "" });
-
-  // UI state
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Security state
-  const [loginAttempts, setLoginAttempts] = useState(0);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [blockTimer, setBlockTimer] = useState(0);
 
   // Redirect if already authenticated as admin
   useEffect(() => {
@@ -32,49 +23,26 @@ const AdminLoginPage = () => {
         navigate(from, { replace: true });
       } else {
         setSubmitError(
-          `You are logged in as a ${user.role}. Please logout first to access the admin portal.`
+          `You are logged in as a ${user.role}. Logout first to access the admin portal.`
         );
       }
     }
   }, [isAuthenticated, user, authLoading, navigate, location.state]);
 
-  // Block timer effect
-  useEffect(() => {
-    if (isBlocked && blockTimer > 0) {
-      const interval = setInterval(() => {
-        setBlockTimer((prev) => {
-          if (prev <= 1) {
-            setIsBlocked(false);
-            setLoginAttempts(0);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isBlocked, blockTimer]);
-
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}m ${s}s`;
-  };
-
   const validateForm = () => {
-    const newErrors = {};
+    const errs = {};
     if (!formData.email.trim()) {
-      newErrors.email = "Admin email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
+      errs.email = "Admin Email is required";
+    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) {
+      errs.email = "Invalid email address";
     }
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      errs.password = "Password is required";
     } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      errs.password = "Password must be at least 6 characters";
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleInputChange = (e) => {
@@ -86,170 +54,80 @@ const AdminLoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isBlocked) return;
     if (!validateForm()) return;
 
     setIsSubmitting(true);
     setSubmitError("");
-
     try {
-      const loggedInUser = await login(formData.email, formData.password);
-
+      const loggedInUser = await loginAdmin(formData.email, formData.password);
       if (loggedInUser.role?.toLowerCase() !== "admin") {
-        const newAttempts = loginAttempts + 1;
-        setLoginAttempts(newAttempts);
-        setSubmitError(
-          "Access Denied: This portal is for administrators only. Please use the regular login page."
-        );
-        if (newAttempts >= 3) {
-          setIsBlocked(true);
-          setBlockTimer(300);
-          setSubmitError(
-            "Too many failed attempts. Access blocked for 5 minutes."
-          );
-        }
+        setSubmitError("Invalid credentials for admin portal.");
         return;
       }
-
       console.log("Admin login successful");
       // Redirect handled by useEffect
-    } catch (error) {
-      console.error("Admin login error:", error);
-      const newAttempts = loginAttempts + 1;
-      setLoginAttempts(newAttempts);
-
-      if (error.message.toLowerCase().includes("suspend")) {
-        setSubmitError(
-          "Your admin account has been suspended. Please contact the system administrator."
-        );
-      } else if (
-        error.message.toLowerCase().includes("invalid") ||
-        error.message.toLowerCase().includes("password")
-      ) {
-        if (newAttempts >= 3) {
-          setIsBlocked(true);
-          setBlockTimer(300);
-          setSubmitError(
-            "Too many failed login attempts. Access blocked for 5 minutes."
-          );
-        } else {
-          setSubmitError(
-            `Invalid credentials. ${3 - newAttempts} attempts remaining.`
-          );
-        }
-      } else if (
-        error.message.toLowerCase().includes("network") ||
-        error.message.toLowerCase().includes("fetch")
-      ) {
-        setSubmitError(
-          "Network error. Please check your connection and try again."
-        );
-      } else {
-        setSubmitError(
-          error.message ||
-            "Authentication failed. Please verify your credentials."
-        );
-      }
+    } catch (err) {
+      console.error("Admin login error:", err);
+      setSubmitError(err.message || "Login failed.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (authLoading) {
-    return <Spinner fullScreen text="Checking authentication..." />;
-  }
+  if (authLoading) return <Spinner fullScreen text="Loading..." />;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
-        <div className="flex flex-col items-center mb-6">
-          <img src={AninexLogo} alt="Aninex Logo" className="h-16 mb-4" />
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <ShieldCheckIcon className="h-6 w-6 text-blue-600" />
-            Admin Portal
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Secure login for authorized administrators only.
-          </p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+      <div className="bg-white shadow rounded p-6 w-full max-w-md">
+        <div className="flex items-center justify-center mb-4">
+          <img src={AninexLogo} alt="Logo" className="h-10 w-10 rounded mr-2" />
+          <h1 className="text-xl font-bold">Admin Login</h1>
         </div>
 
-        {isBlocked && (
-          <div className="bg-red-100 text-red-800 px-4 py-2 rounded mb-4 text-sm">
-            Too many failed attempts. Please wait {formatTime(blockTimer)}{" "}
-            before trying again.
-          </div>
-        )}
-
         {submitError && (
-          <div className="bg-red-100 text-red-800 px-4 py-2 rounded mb-4 text-sm">
+          <div className="bg-red-100 text-red-700 p-2 rounded mb-3 text-sm">
             {submitError}
-            {submitError.toLowerCase().includes("suspend") && (
-              <div className="mt-1 text-xs">
-                Contact support:{" "}
-                <a href="mailto:admin@aninex.com">admin@aninex.com</a>
-              </div>
-            )}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium">Email Address</label>
+            <label>Email</label>
             <input
-              type="email"
               name="email"
               value={formData.email}
-              disabled={isSubmitting || isBlocked}
               onChange={handleInputChange}
-              className={`mt-1 block w-full border rounded-md p-2 ${
-                errors.email ? "border-red-500" : "border-gray-300"
-              }`}
+              className="border rounded p-2 w-full"
             />
             {errors.email && (
-              <p className="text-sm text-red-600">{errors.email}</p>
+              <p className="text-xs text-red-600">{errors.email}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                disabled={isSubmitting || isBlocked}
-                onChange={handleInputChange}
-                className={`mt-1 block w-full border rounded-md p-2 pr-10 ${
-                  errors.password ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 px-3 text-gray-500"
-              >
-                <LockClosedIcon className="h-5 w-5" />
-              </button>
-            </div>
+            <label>Password</label>
+            <input
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              className="border rounded p-2 w-full"
+            />
             {errors.password && (
-              <p className="text-sm text-red-600">{errors.password}</p>
+              <p className="text-xs text-red-600">{errors.password}</p>
             )}
           </div>
-
           <button
             type="submit"
-            disabled={isSubmitting || isBlocked}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            disabled={isSubmitting}
+            className="w-full bg-blue-600 text-white py-2 rounded"
           >
-            {isSubmitting ? "Signing in..." : "Login"}
+            {isSubmitting ? "Logging in..." : "Login as Admin"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
-          Need help?{" "}
-          <Link to="/contact" className="text-blue-600 hover:underline">
-            Contact support
-          </Link>
+        <p className="mt-3 text-xs text-gray-500 text-center">
+          Secure login for authorized administrators only.
         </p>
       </div>
     </div>

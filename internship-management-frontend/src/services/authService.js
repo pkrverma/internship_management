@@ -89,6 +89,18 @@ export const login = async (email, password) => {
   return user;
 };
 
+export const loginAdmin = async (email, password) => {
+  const res = await api.post("/admin/auth/login", {
+    email: String(email).toLowerCase().trim(),
+    password,
+  });
+  const { user, accessToken } = res.data || {};
+  if (!user || !accessToken) throw new Error("Invalid admin login response");
+  localStorage.setItem("accessToken", accessToken);
+  localStorage.setItem("currentUser", JSON.stringify(user));
+  return user;
+};
+
 export const register = async (userData) => {
   const allowed = ["intern", "mentor", "admin"];
   const normalizedRole = String(userData.role).toLowerCase().trim();
