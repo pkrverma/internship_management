@@ -14,6 +14,9 @@ const internshipSchema = new mongoose.Schema(
       required: true,
     },
     status: { type: String, enum: ["active", "closed"], default: "active" },
+    applicationDeadline: { type: Date },
+    openings: { type: Number, default: 1 },
+    requirements: [{ type: String }],
   },
   { timestamps: true }
 );

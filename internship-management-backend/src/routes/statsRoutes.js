@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Internship = require("../models/Internship");
 
-// GET /api/stats/internships
+// GET internship stats
 router.get("/internships", async (req, res, next) => {
   try {
     const totalInternships = await Internship.countDocuments();
@@ -12,7 +12,6 @@ router.get("/internships", async (req, res, next) => {
     const closedInternships = await Internship.countDocuments({
       status: "closed",
     });
-
     res.json({
       data: { totalInternships, activeInternships, closedInternships },
     });

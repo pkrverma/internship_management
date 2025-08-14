@@ -1,13 +1,12 @@
 import axios from "axios";
 
-// Base API URL - adjust this to match your backend
+// Use environment variable names exactly as in your .env files
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -17,10 +16,8 @@ export const getRefreshToken = () => localStorage.getItem("refreshToken");
 export const getCurrentUser = () => {
   try {
     const user = localStorage.getItem("currentUser");
-    if (!user || user === "undefined" || user === "null") return null;
-    return JSON.parse(user);
-  } catch (err) {
-    console.error("Error parsing current user from localStorage:", err);
+    return user ? JSON.parse(user) : null;
+  } catch {
     return null;
   }
 };
@@ -29,30 +26,53 @@ export const getCurrentUser = () => {
 api.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+// Refresh token handling
+let isRefreshing = false;
+let refreshQueue = [];
+const processQueue = (error, token = null) => {
+  refreshQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token)));
+  refreshQueue = [];
+};
+
+// ================== RESPONSE INTERCEPTOR ==================
 api.interceptors.response.use(
-  (response) => response,
+  (resp) => resp,
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({
+            resolve: (token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(api(originalRequest));
+            },
+            reject,
+          });
+        });
+      }
+
       try {
+        isRefreshing = true;
         const newToken = await refreshAccessToken();
-        if (newToken) {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return api(originalRequest);
-        }
-      } catch (refreshError) {
-        logout();
+        processQueue(null, newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        await logout();
         window.location.href = "/login";
-        return Promise.reject(refreshError);
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
       }
     }
     return Promise.reject(error);
@@ -61,106 +81,64 @@ api.interceptors.response.use(
 
 // ================== AUTH FUNCTIONS ==================
 export const login = async (email, password) => {
-  try {
-    console.log("Attempting login...");
-    const response = await api.post("/auth/login", { email, password });
-    const { user, accessToken, refreshToken } = response.data;
-
-    if (!user || !user.role) {
-      throw new Error("Invalid login response from server.");
-    }
-
-    if (user.role.toLowerCase() === "suspend") {
-      throw new Error(
-        "Your account has been suspended. Please contact administrator."
-      );
-    }
-
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("currentUser", JSON.stringify(user));
-    console.log("Login successful:", user);
-
-    return user;
-  } catch (error) {
-    console.error("Login failed:", error);
-    throw new Error(
-      error.response?.data?.message || error.message || "Login failed."
-    );
-  }
+  const res = await api.post("/auth/login", { email, password });
+  const { user, accessToken, refreshToken } = res.data;
+  localStorage.setItem("accessToken", accessToken);
+  localStorage.setItem("refreshToken", refreshToken);
+  localStorage.setItem("currentUser", JSON.stringify(user));
+  return user;
 };
 
 export const register = async (userData) => {
-  try {
-    console.log("Attempting registration...");
-    const response = await api.post("/auth/register", userData);
-    const { user, accessToken, refreshToken } = response.data;
+  const allowed = ["intern", "mentor", "admin"];
+  const normalizedRole = String(userData.role).toLowerCase().trim();
+  if (!allowed.includes(normalizedRole))
+    throw new Error("Invalid role specified");
 
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("currentUser", JSON.stringify(user));
+  const payload = {
+    name: userData.name,
+    email: userData.email,
+    password: userData.password,
+    role: normalizedRole,
+    phone: userData.phone || undefined,
+    university: normalizedRole === "intern" ? userData.university : undefined,
+    specialization:
+      normalizedRole === "mentor" ? userData.specialization : undefined,
+  };
 
-    console.log("Registration successful:", user);
-    return user;
-  } catch (error) {
-    console.error("Registration failed:", error);
-    throw new Error(
-      error.response?.data?.message || error.message || "Registration failed."
-    );
-  }
+  const res = await api.post("/auth/register", payload);
+  const { user, accessToken, refreshToken } = res.data;
+  if (accessToken) localStorage.setItem("accessToken", accessToken);
+  if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+  if (user) localStorage.setItem("currentUser", JSON.stringify(user));
+  return user;
 };
 
 export const logout = async () => {
-  try {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      await api.post("/auth/logout", { refreshToken });
-    }
-  } catch (error) {
-    console.error("Logout API call failed:", error);
-  } finally {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("currentUser");
-    console.log("User logged out.");
-  }
+  const rt = getRefreshToken();
+  if (rt) await api.post("/auth/logout", { refreshToken: rt });
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("currentUser");
 };
 
 export const refreshAccessToken = async () => {
-  try {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) throw new Error("No refresh token available");
-
-    const response = await api.post("/auth/refresh", { refreshToken });
-    const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-    localStorage.setItem("accessToken", accessToken);
-    if (newRefreshToken) {
-      localStorage.setItem("refreshToken", newRefreshToken);
-    }
-    return accessToken;
-  } catch (error) {
-    console.error("Token refresh failed:", error);
-    throw error;
-  }
+  const rt = getRefreshToken();
+  const res = await api.post("/auth/refresh", { refreshToken: rt });
+  const { accessToken, refreshToken: newRT } = res.data;
+  localStorage.setItem("accessToken", accessToken);
+  if (newRT) localStorage.setItem("refreshToken", newRT);
+  return accessToken;
 };
 
-export const isAuthenticated = () => {
-  const token = getAccessToken();
-  const user = getCurrentUser();
-  return !!(token && user);
-};
+export const isAuthenticated = () => !!(getAccessToken() && getCurrentUser());
 
-export const updateProfile = async (userData) => {
-  try {
-    const response = await api.put("/auth/profile", userData);
-    const updatedUser = response.data.user;
+export const updateProfile = async (data) => {
+  const res = await api.put("/auth/profile", data);
+  const updatedUser = res.data?.user;
+  if (updatedUser)
     localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    return updatedUser;
-  } catch (error) {
-    console.error("Profile update failed:", error);
-    throw new Error(error.response?.data?.message || "Profile update failed.");
-  }
+  return updatedUser;
 };
 
 export default {
@@ -173,4 +151,5 @@ export default {
   isAuthenticated,
   refreshAccessToken,
   updateProfile,
+  api,
 };

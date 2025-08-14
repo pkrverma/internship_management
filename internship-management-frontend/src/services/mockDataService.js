@@ -1,92 +1,71 @@
+import { getData, saveData } from "./dataService";
+
 /**
- * Simple in-memory mock data provider
- * Useful for development/testing without a backend
+ * NOTE:
+ * We've removed inline local mock arrays and now proxy to your
+ * backend API endpoints via dataService.js.
+ * All signatures & export names remain exactly the same so existing imports work.
  */
 
-// ======= MOCK DATA =======
-const mockInternships = [
-  {
-    id: "1",
-    title: "Frontend Developer Intern",
-    company: "TechCorp",
-    location: "Remote",
-    description: "Work on React and modern frontend tools",
-    duration: "3 months",
-    stipend: 5000,
-    postedBy: { name: "Alice", email: "alice@example.com" },
-  },
-  {
-    id: "2",
-    title: "Backend Developer Intern",
-    company: "CodeWorks",
-    location: "On-site",
-    description: "Node.js API development & database integration",
-    duration: "4 months",
-    stipend: 7000,
-    postedBy: { name: "Bob", email: "bob@example.com" },
-  },
-];
+// ======= INTERN / INTERNSHIPS =======
 
-const mockApplications = [
-  {
-    id: "app1",
-    internshipId: "1",
-    userId: "u1",
-    status: "Pending",
-    submittedAt: "2025-08-12T10:00:00Z",
-  },
-];
-
-const mockNotifications = [
-  {
-    id: "n1",
-    userId: "u1",
-    message: "Your application status has been updated",
-    isRead: false,
-    createdAt: "2025-08-13T15:20:00Z",
-  },
-];
-
-// ======= API-LIKE FUNCTIONS =======
-export const getMockInternships = () => {
-  return Promise.resolve(mockInternships);
+export const getMockInternships = async () => {
+  return await getData("internships");
 };
 
-export const getMockInternshipById = (id) => {
-  const internship = mockInternships.find((m) => m.id === id);
-  return Promise.resolve(internship || null);
+export const getMockInternshipById = async (id) => {
+  const results = await getData("internships", { id });
+  return Array.isArray(results) ? results[0] || null : results;
 };
 
-export const addMockInternship = (internship) => {
-  const newItem = { ...internship, id: Date.now().toString() };
-  mockInternships.push(newItem);
-  return Promise.resolve(newItem);
+export const addMockInternship = async (internship) => {
+  return await saveData("internships", internship, "POST");
 };
 
-export const getMockApplications = () => {
-  return Promise.resolve(mockApplications);
+// ======= APPLICATIONS =======
+
+export const getMockApplications = async () => {
+  return await getData("applications");
 };
 
-export const getMockNotifications = () => {
-  return Promise.resolve(mockNotifications);
+// ======= NOTIFICATIONS =======
+
+export const getMockNotifications = async () => {
+  return await getData("notifications");
 };
 
-export const getUnreadNotificationsCount = () => {
-  const count = mockNotifications.filter((n) => !n.isRead).length;
-  return Promise.resolve({ unread: count });
+export const getUnreadNotificationsCount = async () => {
+  const res = await getData("notifications", { unreadOnly: true });
+  return { unread: Array.isArray(res) ? res.length : res?.unread || 0 };
 };
 
-// Example of adding shared documents
-export const getSharedDocuments = () => {
-  return Promise.resolve([
-    {
-      id: "doc1",
-      name: "Internship Guidelines.pdf",
-      addedOn: "2025-08-10T09:00:00Z",
-    },
-  ]);
+// ======= DOCUMENTS =======
+
+export const getSharedDocuments = async () => {
+  return await getData("documents/shared");
 };
 
+// ======= MENTOR FEATURES =======
+
+export const getInternsByMentorId = async (mentorId) => {
+  return await getData("users", { mentorId, role: "intern" });
+};
+
+export const getConversationsForMentor = async (mentorId) => {
+  return await getData("messages", { mentorId });
+};
+
+export const getMeetingsByMentorId = async (mentorId) => {
+  return await getData("meetings", { mentorId });
+};
+
+// ======= INTERN FEATURES =======
+
+export const getMeetingsByInternId = async (internId) => {
+  return await getData("meetings", { internId });
+};
+
+// ======= DEFAULT EXPORT =======
 export default {
   getMockInternships,
   getMockInternshipById,
@@ -95,4 +74,8 @@ export default {
   getMockNotifications,
   getUnreadNotificationsCount,
   getSharedDocuments,
+  getInternsByMentorId,
+  getConversationsForMentor,
+  getMeetingsByMentorId,
+  getMeetingsByInternId,
 };
